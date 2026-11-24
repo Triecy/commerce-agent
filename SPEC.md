@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Version | v0.7 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
+| Version | v0.7.1 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
 | Date | 2026-11-22 |
 | Upstream | `bcefghj/multi-agent-ecommerce-system` @ main (2 commits; cloned, Python implementation reviewed) |
 | Project name | Commerce Agent (repository `commerce-agent`; Python package `commerce_agent`) |
@@ -27,7 +27,7 @@
 A multi-agent e-commerce system **built on real public data** that does personalized recommendation (Flow R) and evidence-grounded shopping Q&A (Flow Q), evolving from a **modular monolith** into an **event-driven distributed backend**, with every architectural step quantified by benchmarks.
 
 ### 1.2 Project narrative (interview / portfolio storyline)
-> Start from a multi-agent recommendation prototype that used mock data → build a real data pipeline and an evaluable recommender and RAG system → answer "is multi-agent better than single-agent?" with an experiment → evolve to Kafka event-driven processing plus an independent inventory service → verify consistency and resilience with load tests and failure injection.
+> Start from a multi-agent recommendation prototype that used mock data → build a real data pipeline and an evaluable recommender and RAG system → answer "is multi-agent better than single-agent?" with an experiment → evolve to Kafka event-driven processing → verify consistency and resilience with load tests and failure injection.
 
 Three capability axes: **AI application engineering** (RAG, agent orchestration, evaluation) · **backend engineering** (transactions, idempotency, caching, APIs) · **distributed systems** (event-driven design, consistency, fault tolerance, observability).
 
@@ -39,7 +39,7 @@ Three capability axes: **AI application engineering** (RAG, agent orchestration,
 | G3 | RAG: hybrid retrieval + grounded answers (with citations, able to abstain), with retrieval and faithfulness evaluation |
 | G4 | Orchestration: LangGraph workflows with timeout budgets, degradation, and a single-agent vs multi-agent comparison |
 | G5 | Distributed patterns: Outbox + Kafka, idempotent consumers, DLQ, strongly consistent inventory, distributed tracing |
-| G6 | Verification: load tests, concurrency correctness tests, failure injection, an experiment simulator, and result reports |
+| G6 | Verification: load tests, concurrency correctness tests, failure injection, and result reports |
 
 ### 1.4 Non-goals (explicitly out of scope)
 - No Java / Go versions (the upstream's three languages are resume packaging, not engineering value).
@@ -103,10 +103,10 @@ A Python (LangGraph + FastAPI) Supervisor-style recommendation prototype: 4 agen
 | `agents/base_agent.py` | **Refactor** | Keep the "template method + fallback" idea; rewrite as `common/resilience`: enforced timeouts, jittered backoff, circuit breaker, bulkhead (FR-S*) |
 | `orchestrator/graph.py` | **Refactor → the only orchestrator** | LangGraph is the sole production orchestrator; fix D3; delete `supervisor.py` to avoid two parallel implementations |
 | `orchestrator/supervisor.py` | **Delete** | Logic folded into LangGraph |
-| `services/ab_test.py` | **Refactor** | Keep hash bucketing; make `config` actually drive behavior; persist exposure/outcome; move Thompson into the simulator (FR-X*) |
+| `services/ab_test.py` | **Refactor** | Keep hash bucketing; make `config` actually drive behavior; persist exposure/outcome (FR-X*) |
 | `services/feature_store.py` | **Refactor + wire up** | Keep the Redis ZSET sliding-window design; use event-time semantics; written by a Kafka consumer (FR-E*) |
 | `agents/user_profile_agent.py` | **Rewrite** | Deterministic features first; the LLM is no longer on the critical path (D6) |
-| `agents/product_rec_agent.py` | **Rewrite** | Real recall + ranking + optional LLM rerank (FR-R*); `MOCK_PRODUCTS` becomes a test fixture |
+| `agents/product_rec_agent.py` | **Rewrite** | Real recall + ranking (FR-R*); `MOCK_PRODUCTS` becomes a test fixture |
 | `agents/inventory_agent.py` | **Rewrite** | Backed by Postgres inventory (FR-I*); thresholds / purchase-limit rules configurable |
 | `agents/marketing_copy_agent.py` | **Refactor** | Keep segment-based template selection; add fact verification, English compliance rules, caching (FR-M*) |
 | `services/metrics.py` | **Delete → redo** | Replace with Prometheus + OTel (FR-B*) |
@@ -150,7 +150,7 @@ An "agent" = a logical capability with a clear input/output contract; its implem
 | Profile | **Deterministic** (Redis features + rule-based segmentation); the LLM may optionally produce a readable summary, never on the critical path | Real-time features, RFM, segmentation | R, Q |
 | Recommendation | Deterministic recall + ranking (LLM rerank deferred) | Recall (popularity / co-visit / vector) → filter → rank | R, Q |
 | Knowledge (RAG) | LLM (answer synthesis) + retrieval pipeline | Hybrid retrieval, rerank, grounded answers, abstention | Q |
-| Inventory | **Deterministic** (Postgres / inventory service) | Query, reserve, release on expiry, purchase-limit suggestions | R, Q |
+| Inventory | **Deterministic** (Postgres inventory store) | Query, reserve, release on expiry, purchase-limit suggestions | R, Q |
 | Marketing Copy | LLM + fact verification + compliance filter | Segment-based template generation; caching | R |
 
 ### 4.3 Architecture evolution (every step needs a benchmark comparison)
@@ -208,11 +208,11 @@ commerce-agent/
 ├── src/commerce_agent/
 │   ├── common/        config, logging, otel, schemas, resilience/{deadline,retry,breaker,bulkhead}, llm/{client,claude,ollama,fake,cache}
 │   ├── data/          download, canonicalize, split, simulate_inventory
-│   ├── rec/           recall/{popularity,covisit,embedding}, rank/, rerank_llm.py, eval/
+│   ├── rec/           recall/{popularity,covisit,embedding}, rank/, eval/
 │   ├── rag/           ingest, chunk, retrieve (hybrid), rerank, answer, eval/
 │   ├── agents/        router, profile, recommender, knowledge, inventory_client, marketing, single_agent_baseline
 │   ├── orchestrator/  state.py, graph_recommend.py, graph_assistant.py
-│   ├── experiments/   bucketing, exposure, analysis, thompson_sim
+│   ├── experiments/   bucketing, exposure, analysis
 │   ├── inventory/     repo, reservations, service_app (library; separate process deferred)
 │   ├── events/        envelope, outbox, publisher, consumers/, dlq_tool
 │   └── api/           gateway app
@@ -563,6 +563,7 @@ Already deferred (§3): P6 / V3, Retailrocket, E9, E2 / FR-R4, Dashboard, Milvus
 | 2026-11-22 | v0.5 | Added ADR-0010 (new repository instead of a fork); synced §2.4 with the repo name and license information | — |
 | 2026-11-22 | v0.6 | Translated the whole spec into English; fixed ADR references to the four-digit form (ADR-0001 … ADR-0010); no change to requirements or decisions | — |
 | 2026-11-23 | v0.7 | ADR-0011 (depth over breadth): added §1.6 deep items and Definition of Done; deferred P6 / V3, Retailrocket, E2 / FR-R4, E9 / FR-X5, FR-B4; reduced E5 (pilot) and E6 (V1 vs V2); added FR-K6–K8 and restored FR-K3 for RAG depth; re-estimated P3 / P4 / P8 / P9 (total ≈ 41 person-days) | — |
+| 2026-11-23 | v0.7.1 | Consistency fixes after ADR-0011, no requirement changes: §1.2 narrative no longer mentions an independent inventory service; §1.3 G6 drops the experiment simulator; §2.3 drops Thompson-in-simulator (`services/ab_test.py`) and optional LLM rerank (`agents/product_rec_agent.py`); §4.2 Inventory is a Postgres inventory store; §4.6 layout drops `rerank_llm.py` and `thompson_sim` | — |
 
 ---
 
