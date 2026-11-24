@@ -18,7 +18,7 @@ Commerce Agent is a portfolio-grade, **single-developer** e-commerce system buil
 
 - Solo developer building this for learning and a portfolio/resume. Wants engineering depth in three areas: AI application engineering, backend engineering, distributed-systems patterns.
 - The owner chats in **Chinese**. Reply to the owner in Chinese unless asked otherwise. **All code, comments, docs, commit messages and file contents are in English.**
-- OS is not yet confirmed (detect it). **Docker was NOT installed at the start** — check `docker --version` before any compose work. If missing, do the non-Docker parts first and tell the owner clearly how to install Docker Desktop and what to run to verify (`docker run hello-world`).
+- Owner's machine: **macOS 13 (Apple Silicon)**. The Docker engine is **Colima**, not Docker Desktop (Docker CLI + Compose v2 against the `colima` context). After a reboot, run `colima start` before `make up`; if `docker info` fails, check `colima status` first.
 - The owner will use the Anthropic Console API key for LLM calls. Never ask the owner to paste a key into the chat; read it from the `ANTHROPIC_API_KEY` environment variable / `.env` (git-ignored).
 - Copyright holder name for LICENSE/NOTICE: ask the owner if it is not given. Do not invent one.
 
@@ -74,7 +74,7 @@ No real payments/orders/accounts, no polished frontend (dashboard only needs to 
 
 Layout: see SPEC §4.6 (`src/commerce_agent/...`, `tests/`, `bench/`, `deploy/`, `docs/`). Repo name `commerce-agent`, Python package `commerce_agent`, license MIT.
 
-Commands (created in P0; keep this list current): `make up`, `make down`, `make test`, `make lint`, `make data` (P1), `make eval-e1` … `make bench-e6` (later phases).
+Commands (created in P0; keep this list current): `make install`, `make up`, `make down`, `make test`, `make lint`, `make typecheck`, `make fmt`, `make audit`, `make data` (P1), `make eval-e1` … `make bench-e6` (later phases).
 
 ## 11. Working agreement
 
