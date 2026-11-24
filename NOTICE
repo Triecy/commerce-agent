@@ -1,0 +1,21 @@
+Commerce Agent
+Copyright (c) 2026 [COPYRIGHT HOLDER: TO BE CONFIRMED BY OWNER]
+Licensed under the MIT License (see LICENSE).
+
+Inspiration and attribution
+---------------------------
+This project was inspired by the open-source prototype
+"multi-agent-ecommerce-system" by bcefghj:
+
+    https://github.com/bcefghj/multi-agent-ecommerce-system
+
+That repository was studied as a reference only (see SPEC.md §2 and ADR-0010).
+This is a new, independent repository, not a fork. No source code and no
+documentation were copied from it. At the time of review the upstream
+repository contained no LICENSE file, so it is not treated as redistributable.
+
+Third-party data
+----------------
+Datasets (for example Amazon Reviews 2023, McAuley Lab) are downloaded by
+scripts at build time and are not redistributed in this repository. Their
+licenses and terms are recorded in docs/data-card.md.
