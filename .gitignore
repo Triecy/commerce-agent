@@ -1,0 +1,36 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Data (never commit datasets; `make data` rebuilds them)
+/data/
+/datasets/
+*.parquet
+*.jsonl.gz
+
+# LLM response cache and local artifacts
+.llm_cache/
+bench/reports/*
+!bench/reports/.gitkeep
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
