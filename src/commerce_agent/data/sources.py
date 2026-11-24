@@ -1,11 +1,14 @@
 """Pinned dataset sources: Amazon Reviews 2023 (McAuley Lab), SPEC §5.1 / ADR-0002.
 
-The 5-core benchmark rating files and item metadata of the P1 candidate categories
-are pinned; they are used for category profiling. The raw review file of the chosen
-category is pinned once the category is decided (ADR-0002).
+The 5-core benchmark rating files and item metadata of the P1 candidate categories are
+pinned (used for category profiling). The chosen category is **Video_Games** (ADR-0002);
+its raw review file is pinned too, and :data:`VIDEO_GAMES` describes the dataset that
+``make data`` builds.
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 from commerce_agent.data.download import Source
 
@@ -63,3 +66,54 @@ def item_metadata(category: str) -> Source:
         sha256=sha,
         size_bytes=size,
     )
+
+
+_REVIEWS_SHA256: dict[str, tuple[str, int]] = {
+    "Video_Games": ("52d8762c94a5b99d3bccdb31c15cc6c99e05c89f9042cd3753b3b623a44bc193", 814206092),
+}
+
+
+def reviews(category: str) -> Source:
+    """Raw reviews (rating, title, text, timestamp, helpful_vote, verified_purchase)."""
+    sha, size = _REVIEWS_SHA256[category]
+    return Source(
+        name=f"reviews-{category}",
+        url=f"{BASE_URL}/raw/review_categories/{category}.jsonl.gz",
+        sha256=sha,
+        size_bytes=size,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class DatasetSpec:
+    """What ``make data`` builds, and the row counts it must produce (FR-D1)."""
+
+    category: str
+    source: str
+    k_core: int
+    expected_users: int
+    expected_items: int
+    expected_interactions: int
+
+    @property
+    def ratings(self) -> Source:
+        return five_core_ratings(self.category)
+
+    @property
+    def metadata(self) -> Source:
+        return item_metadata(self.category)
+
+    @property
+    def reviews(self) -> Source:
+        return reviews(self.category)
+
+
+# Owner decision (P1): the official 5-core file is used as is (k = 5, no extra filtering).
+VIDEO_GAMES = DatasetSpec(
+    category="Video_Games",
+    source="amazon2023/Video_Games",
+    k_core=5,
+    expected_users=94_762,
+    expected_items=25_612,
+    expected_interactions=814_586,
+)

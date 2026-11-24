@@ -41,6 +41,27 @@ jobs:
       - name: Unit tests
         run: make test
 
+  integration:
+    name: integration tests (testcontainers, real Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ANTHROPIC_API_KEY: ""
+      APP_ENV: ci
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.9"
+          enable-cache: true
+
+      - name: Install Python 3.12 and locked dependencies
+        run: uv sync --locked
+
+      - name: Integration tests
+        run: make test-integration
+
   audit:
     name: dependency vulnerability scan (non-blocking)
     runs-on: ubuntu-latest

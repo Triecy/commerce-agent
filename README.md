@@ -10,8 +10,8 @@ It starts as a modular monolith and evolves into an event-driven backend (Postgr
 idempotent consumers). Every architectural step is meant to be checked with benchmarks,
 concurrency tests and failure injection.
 
-**Status:** Phase P0 (bootstrap). Nothing beyond health endpoints is implemented yet, and there are
-no results to report. Any number this README states later will link to a report in `docs/results/`.
+**Status:** Phase P1 (data pipeline) done: the Video_Games dataset loads into Postgres with
+`make data`. No model or benchmark results yet. Any number this README states later will link to a report in `docs/results/`.
 
 The design, requirements and roadmap live in [SPEC.md](SPEC.md), which is the single source of
 truth. Decisions are recorded in [docs/adr/](docs/adr/).
@@ -32,6 +32,8 @@ make typecheck # mypy
 make audit     # pip-audit on uv.lock (known CVEs)
 
 make up        # Postgres 16 + pgvector and Redis 7; waits until both are healthy
+make data      # download (pinned, ~0.9 GB), split, simulated inventory, load; idempotent
+make test-integration  # migrations and loader against a real Postgres (testcontainers)
 make down      # stop (data volumes are kept)
 ```
 
@@ -44,6 +46,17 @@ uv run uvicorn commerce_agent.api.main:app --reload
 curl localhost:8000/healthz   # liveness
 curl localhost:8000/readyz    # 200 only if Postgres and Redis are reachable
 ```
+
+## Data
+
+Amazon Reviews 2023, Video_Games category (McAuley Lab). The data is downloaded from the
+official source and never redistributed in this repository. No license is stated for the
+data; see [docs/data-card.md](docs/data-card.md) for the terms that were checked, the
+usage rules this project follows, the statistics and the known biases. Inventory is
+**simulated**.
+
+If you use this data, cite: Hou, Li, He, Yan, Chen, McAuley. *Bridging Language and Items
+for Retrieval and Recommendation.* arXiv:2403.03952, 2024.
 
 ## Repository layout
 
