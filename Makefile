@@ -5,7 +5,7 @@ SHELL := /bin/bash
 UV      ?= uv
 COMPOSE := docker compose -f deploy/compose.yml --env-file .env --profile core
 
-.PHONY: help install up down ps logs stack-check test lint typecheck fmt audit check require-docker
+.PHONY: help install up down ps logs stack-check test lint typecheck fmt audit profile-categories check require-docker
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-12s %s\n", $$1, $$2}'
@@ -49,6 +49,9 @@ typecheck: ## mypy (strict for commerce_agent.common)
 fmt: ## Auto-format and apply safe lint fixes
 	$(UV) run ruff format .
 	$(UV) run ruff check --fix .
+
+profile-categories: ## P1: profile candidate Amazon categories (downloads ~570 MB to data/raw)
+	$(UV) run python -m commerce_agent.data.profile --with-meta --out docs/results/p1-category-profiling.json
 
 PIP_AUDIT_VERSION ?= 2.10.1
 AUDIT_REQ := .audit-requirements.txt

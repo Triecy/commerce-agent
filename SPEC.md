@@ -269,9 +269,9 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 ### 6.1 Data (FR-D)
 | ID | Requirement | Acceptance | Status |
 |---|---|---|---|
-| FR-D1 | Download + normalization scripts producing the Canonical Schema | `make data` succeeds idempotently on an empty DB; row counts match the data card | ☐ |
-| FR-D2 | k-core + temporal split | Unit test: the split has no temporal leakage | ☐ |
-| FR-D3 | Inventory simulator (long tail, restocking, fixed seed) | Two runs with the same seed produce identical output | ☐ |
+| FR-D1 | Download + normalization scripts producing the Canonical Schema | `make data` succeeds idempotently on an empty DB; row counts match the data card | ◐ |
+| FR-D2 | k-core + temporal split | Unit test: the split has no temporal leakage | ◐ |
+| FR-D3 | Inventory simulator (long tail, restocking, fixed seed) | Two runs with the same seed produce identical output | ◐ |
 | FR-D4 | Data card | `docs/data-card.md` is complete | ☐ |
 
 ### 6.2 Recommendation (FR-R)
