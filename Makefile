@@ -5,7 +5,7 @@ SHELL := /bin/bash
 UV      ?= uv
 COMPOSE := docker compose -f deploy/compose.yml --env-file .env --profile core
 
-.PHONY: help install up down ps logs stack-check test lint typecheck fmt check require-docker
+.PHONY: help install up down ps logs stack-check test lint typecheck fmt audit check require-docker
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-12s %s\n", $$1, $$2}'
@@ -50,4 +50,13 @@ fmt: ## Auto-format and apply safe lint fixes
 	$(UV) run ruff format .
 	$(UV) run ruff check --fix .
 
-check: lint typecheck test ## Everything CI runs
+PIP_AUDIT_VERSION ?= 2.10.1
+AUDIT_REQ := .audit-requirements.txt
+
+audit: ## Scan locked dependencies for known vulnerabilities (pip-audit, NFR-5)
+	$(UV) export --frozen --format requirements-txt --no-emit-project --quiet -o $(AUDIT_REQ)
+	$(UV)x --from pip-audit==$(PIP_AUDIT_VERSION) pip-audit -r $(AUDIT_REQ) \
+		--disable-pip --require-hashes --progress-spinner off; \
+		status=$$?; rm -f $(AUDIT_REQ); exit $$status
+
+check: lint typecheck test ## Everything CI runs (blocking); `make audit` runs separately

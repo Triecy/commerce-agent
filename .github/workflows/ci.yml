@@ -41,6 +41,24 @@ jobs:
       - name: Unit tests
         run: make test
 
+  audit:
+    name: dependency vulnerability scan (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # NFR-5. Non-blocking: advisory-database or network flakiness must not fail CI.
+    # Findings still show as a failed (yellow-flagged) job in the run summary.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.9"
+          enable-cache: true
+
+      - name: pip-audit on uv.lock
+        run: make audit
+
   compose:
     name: validate compose file
     runs-on: ubuntu-latest

@@ -29,6 +29,7 @@ make install   # create .venv from uv.lock
 make test      # unit tests; offline, no API keys needed
 make lint      # ruff
 make typecheck # mypy
+make audit     # pip-audit on uv.lock (known CVEs)
 
 make up        # Postgres 16 + pgvector and Redis 7; waits until both are healthy
 make down      # stop (data volumes are kept)
