@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Version | v0.6 (Baseline, approved by the owner; all ADRs in §12 are Accepted; P0 can start) |
+| Version | v0.7 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
 | Date | 2026-11-22 |
 | Upstream | `bcefghj/multi-agent-ecommerce-system` @ main (2 commits; cloned, Python implementation reviewed) |
 | Project name | Commerce Agent (repository `commerce-agent`; Python package `commerce_agent`) |
@@ -43,16 +43,37 @@ Three capability axes: **AI application engineering** (RAG, agent orchestration,
 
 ### 1.4 Non-goals (explicitly out of scope)
 - No Java / Go versions (the upstream's three languages are resume packaging, not engineering value).
-- No real payment/order flow, user account system, or frontend polish (the dashboard only needs to be clear).
+- No real payment/order flow, user account system, or frontend polish (the Grafana panels only need to be clear).
 - **No claims** of any real online CTR / CVR / GMV improvement (there is no real traffic, only offline metrics and simulation).
 - No splitting into services for the sake of "number of microservices" (§4.3 sets admission conditions for splitting).
-- No production Kubernetes deployment; Docker Compose is enough (K8s is only a Tier 3 stretch).
+- No production Kubernetes deployment; Docker Compose is enough (K8s is deferred).
+- No independent inventory microservice, no Dashboard app, no LLM-rerank experiment, no Retailrocket tenant, no Thompson-sampling simulator (see §3, Deferred).
 
 ### 1.5 Project-level success criteria
 1. `make up && make demo` runs end to end on a clean machine in ≤ 15 minutes (including data preparation).
-2. All of E1–E8 in §8 have reproducible result artifacts and conclusions (conclusions may be negative, but must be honest).
+2. The experiments that remain in scope (E1, E3, E4, E5 pilot, E6 V1-vs-V2, E7, E8; see §8.1) have reproducible result artifacts and conclusions (conclusions may be negative, but must be honest).
 3. Concurrent inventory test: 0 oversells; under failure injection: 0 lost events and 0 duplicate side effects.
 4. Every Tier 1 requirement is ☑ and the core paths have automated tests.
+
+### 1.6 Depth principle and Definition of Done
+This project deliberately trades breadth for depth. Five **deep items** carry the project; everything else is kept lean or deferred (§3).
+
+| # | Deep item | What makes it deep | Requirements / experiments |
+|---|---|---|---|
+| 1 | Data pipeline + recommendation evaluation | Reproducible data, leak-free temporal split, full-ranking metrics with confidence intervals | FR-D*, FR-R1–R3, FR-R5, E1 |
+| 2 | RAG grounded Q&A | Retrieval and chunking ablations, cross-encoder arm, verified citations, abstention, judge calibrated on human labels, error taxonomy, prompt-injection robustness | FR-K1–K8, E3, E4 |
+| 3 | Inventory consistency + idempotency | Invariants proven under concurrency, replays and crashes | FR-I1–I5, E7 |
+| 4 | Outbox → Kafka → idempotent consumers | At-least-once + dedupe, DLQ, ordering per key, consumer-group scale-out and rebalance | FR-E1–E7 |
+| 5 | Failure injection and resilience | Enforced timeouts, breakers, bulkheads, measured degradation and recovery | FR-S*, FR-O3, FR-O4, FR-I6, E8 |
+
+Supporting, kept lean: orchestration (FR-O*), marketing copy (FR-M*), experiment framework (FR-X1–X4), observability (FR-B1–B3), the E5 pilot and E6 (V1 vs V2).
+
+**Definition of Done** (applies to every deep item and requirement group; a phase cannot close until it holds):
+1. Core paths are covered by automated tests, named with the requirement ID.
+2. A result report exists in `docs/results/` with method, numbers, **limitations**, and "what was tried and did not work".
+3. Related decisions are recorded as ADRs.
+4. One `make` command reproduces the result from a clean checkout.
+5. Requirement statuses in this spec are updated (☐ / ◐ / ☑).
 
 ---
 
@@ -92,7 +113,7 @@ A Python (LangGraph + FastAPI) Supervisor-style recommendation prototype: 4 agen
 | `docker-compose.yml` | **Rewrite** | Multiple profiles (§4.6), healthchecks, drop MySQL |
 | `java/`, `go/`, interview/resume docs, README interview sections | **Delete** | Non-goals |
 | `main.py` | **Refactor** | Split into an `api/` gateway with dependency injection |
-| — | **Add** | Data pipeline, RAG, evaluation framework, Outbox/Kafka, independent inventory service, idempotency, caching, tracing, benchmarks, dashboard |
+| — | **Add** | Data pipeline, RAG, evaluation framework, Outbox/Kafka, idempotency, caching, tracing, benchmarks |
 
 ### 2.4 License and attribution
 The upstream has no LICENSE file (D10). Policy: **treat the upstream as a reference implementation, not a redistributable codebase**; the new repository starts blank and borrows only structure and a few ideas; `NOTICE` states it was inspired by the upstream and links to it; none of its docs or resume content is copied. If substantial code reuse is ever wanted, first ask for a license clarification in an upstream issue.
@@ -102,9 +123,9 @@ The upstream has no LICENSE file (D10). Policy: **treat the upstream as a refere
 ## 3. Scope Tiers
 | Tier | Content | Rule |
 |---|---|---|
-| **Tier 1 (must)** | Data pipeline (single Amazon category), recommendation baselines + evaluation, RAG + evaluation, LangGraph two-flow orchestration, Postgres inventory and idempotency, Outbox + Kafka + consumers, observability, E1–E8 | The project is complete only when all of this is done |
-| **Tier 2 (planned, cuttable)** | Independent inventory service + separately deployed consumers (V3), Retailrocket as a second dataset (event replay and generalization evaluation), Thompson simulator (E9), cross-encoder rerank | Cut in the order given in §11.3 if the schedule is tight |
-| **Tier 3 (stretch)** | Milvus comparison benchmark, K8s, gRPC, online learning | Not part of the main plan |
+| **Tier 1 (must, deep)** | The five deep items in §1.6: data pipeline + recommendation evaluation (E1), RAG grounded Q&A (E3, E4), inventory consistency + idempotency (E7), Outbox + Kafka + idempotent consumers, failure injection + resilience (E8) | The project is complete only when all of this meets the Definition of Done |
+| **Tier 2 (supporting, lean)** | LangGraph two-flow orchestration, marketing copy, experiment framework (FR-X1–X4), observability (FR-B1–B3), E5 pilot, E6 (V1 vs V2) | Kept small; cut in the order given in §11.3 if the schedule is tight |
+| **Deferred (not planned)** | Independent inventory service and separately deployed consumers (V3 / P6), Retailrocket tenant, Thompson simulator (E9, FR-X5), LLM rerank (FR-R4, E2), Dashboard app (FR-B4), Milvus comparison, K8s, gRPC, online learning | Revisit only after all of Tier 1 meets the Definition of Done (ADR-0011) |
 
 ---
 
@@ -114,7 +135,7 @@ The upstream has no LICENSE file (D10). Policy: **treat the upstream as a refere
 | | Flow R: recommendation flow | Flow Q: shopping Q&A flow |
 |---|---|---|
 | Entry | `POST /v1/recommendations` | `POST /v1/assistant/query` |
-| Nature | **Deterministic workflow**; the LLM is used only for copy (async / cached where possible) and optional rerank | **Genuinely agentic**: intent routing → retrieval → recommendation → inventory check → grounded answer |
+| Nature | **Deterministic workflow**; the LLM is used only for copy (async / cached where possible) | **Genuinely agentic**: intent routing → retrieval → recommendation → inventory check → grounded answer |
 | Latency target* | p95 ≤ 300 ms (cached copy; excluding LLM rerank) | p95 ≤ 8 s (including the real LLM) |
 | Degradation | §7.2 degradation ladder | Same; **abstain** when retrieval finds no evidence |
 
@@ -127,7 +148,7 @@ An "agent" = a logical capability with a clear input/output contract; its implem
 |---|---|---|---|
 | Router (Supervisor) | LLM (structured output) + rule-based fallback | Intent classification, constraint extraction (category / price / needs stock), deciding which sub-agents to call | Q |
 | Profile | **Deterministic** (Redis features + rule-based segmentation); the LLM may optionally produce a readable summary, never on the critical path | Real-time features, RFM, segmentation | R, Q |
-| Recommendation | Deterministic recall + ranking; LLM rerank is a feature flag | Recall (popularity / co-visit / vector) → filter → rank → (optional) rerank | R, Q |
+| Recommendation | Deterministic recall + ranking (LLM rerank deferred) | Recall (popularity / co-visit / vector) → filter → rank | R, Q |
 | Knowledge (RAG) | LLM (answer synthesis) + retrieval pipeline | Hybrid retrieval, rerank, grounded answers, abstention | Q |
 | Inventory | **Deterministic** (Postgres / inventory service) | Query, reserve, release on expiry, purchase-limit suggestions | R, Q |
 | Marketing Copy | LLM + fact verification + compliance filter | Segment-based template generation; caching | R |
@@ -147,7 +168,7 @@ V2  + Event-driven (end of Phase 5)
                                        ├──▶ exposure/outcome-logger ──▶ Postgres
                                        └──▶ *.dlq (failed events + replay tool)
 
-V3  + Independent deployment (end of Phase 6, Tier 2)
+V3  + Independent deployment (DEFERRED, not in plan; kept for reference)
   Gateway+Orchestrator ──HTTP──▶ Inventory Service (separate process, sole owner of inventory tables)
   Event consumers in their own containers, independently scalable
 
@@ -192,12 +213,11 @@ commerce-agent/
 │   ├── agents/        router, profile, recommender, knowledge, inventory_client, marketing, single_agent_baseline
 │   ├── orchestrator/  state.py, graph_recommend.py, graph_assistant.py
 │   ├── experiments/   bucketing, exposure, analysis, thompson_sim
-│   ├── inventory/     repo, reservations, service_app (library in V1; separate process in V3)
+│   ├── inventory/     repo, reservations, service_app (library; separate process deferred)
 │   ├── events/        envelope, outbox, publisher, consumers/, dlq_tool
 │   └── api/           gateway app
 ├── tests/  unit  contract  integration  property  e2e
-├── bench/  stub_llm  scenarios  reports
-└── dashboard/
+└── bench/  stub_llm  scenarios  reports
 ```
 
 ---
@@ -208,11 +228,11 @@ commerce-agent/
 | Dataset | Role | Rules |
 |---|---|---|
 | **Amazon Reviews 2023 (McAuley Lab), one small category** | **Primary dataset**: item title / description / features (RAG, copy, vectors), reviews (RAG evidence), timestamped user–item interactions (recommendation). One dataset supports both Flow R and Flow Q | Category chosen after profiling in P1; selection criteria: after k-core roughly 20k–100k items, ≥ 200k interactions, English; recorded in ADR-0002 and `data-card.md`. **Verify** license and fields at download time |
-| **Retailrocket** (Tier 2) | Real view / addtocart / transaction **event stream**: used for Kafka event replay, load testing and recommendation generalization evaluation | Its item properties are hashed and have no readable text, so it **does not take part in RAG / copy**; it is **not merged** with Amazon and acts as a separate tenant |
+| **Retailrocket** (Deferred, not in plan) | Real view / addtocart / transaction **event stream**: used for Kafka event replay, load testing and recommendation generalization evaluation | Its item properties are hashed and have no readable text, so it **does not take part in RAG / copy**; it is **not merged** with Amazon and acts as a separate tenant |
 | Inventory | **Simulated** (long-tail distribution correlated with popularity; includes restocking and reservation expiry) | Always labeled "simulated" in documents |
 | Shopping Q&A test set | Self-built (§8 E3–E5) | Synthetic + a human-verified subset |
 
-> Difference from the earlier informal plan (approved by the owner): Amazon is promoted to primary dataset and Retailrocket is demoted to Tier 2. Reason: the two datasets cannot be joined (Retailrocket has no readable item text), while Amazon reviews carry timestamped interactions, so a single dataset lets recommendation, RAG, copy and inventory simulation close the loop on the **same set of items**, which lowers MVP risk significantly. See ADR-0002.
+> Difference from the earlier informal plan (approved by the owner): Amazon is promoted to primary dataset and Retailrocket is demoted (now deferred, §3). Reason: the two datasets cannot be joined (Retailrocket has no readable item text), while Amazon reviews carry timestamped interactions, so a single dataset lets recommendation, RAG, copy and inventory simulation close the loop on the **same set of items**, which lowers MVP risk significantly. See ADR-0002.
 
 ### 5.2 Canonical Schema (Postgres)
 ```
@@ -260,7 +280,7 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 | FR-R1 | Recall: global popularity, item-item co-visitation, embedding similarity (content), hybrid (RRF / weighted) | Each route can be toggled independently; same input → same output (deterministic) | ☐ |
 | FR-R2 | Filters: already purchased / unavailable / category constraints | Covered by unit tests | ☐ |
 | FR-R3 | Ranking: feature-weighted scoring (explainable), diversity re-ranking | `reason_tags` are output with each ranking | ☐ |
-| FR-R4 | LLM rerank (feature flag, off by default); falls back to the original order on invalid output | Contract test: malformed JSON / hallucinated ids do not affect the response | ☐ |
+| FR-R4 | **Deferred.** LLM rerank (feature flag, off by default) | Not in plan (ADR-0011) | — |
 | FR-R5 | Offline evaluation framework: Recall@K, NDCG@K, HitRate@K, Coverage, diversity | Produces the E1 report with bootstrap 95% CIs | ☐ |
 
 ### 6.3 RAG (FR-K)
@@ -268,9 +288,12 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 |---|---|---|---|
 | FR-K1 | Ingestion: chunking strategy (title / description / features / reviews as separate kinds), metadata | Chunking is replayable; chunk counts match the data card | ☐ |
 | FR-K2 | Hybrid retrieval: Postgres FTS + vectors, RRF fusion, SQL filters on category / price | E3 ablation runs | ☐ |
-| FR-K3 | Optional cross-encoder rerank (Tier 2) | Same as above | ☐ |
+| FR-K3 | Cross-encoder rerank stage (local model), evaluated as an ablation arm in E3 | E3 reports the gain (or lack of it) and the latency cost versus hybrid-only | ☐ |
 | FR-K4 | Grounded answers: claims must carry `citations[chunk_id]`; `abstained=true` when evidence is insufficient | Contract test: 100% abstention on no-evidence queries (on the test set) | ☐ |
 | FR-K5 | Evaluation set (≥ 150 questions, ~20% unanswerable) + metrics: Recall@k, MRR, faithfulness, citation precision, abstention correctness | E3, E4 reports | ☐ |
+| FR-K6 | **Citation verification**: after generation, check that every cited `chunk_id` was actually retrieved and that each claim is supported by its cited text (overlap check at serving time, judge in evaluation); unsupported claims are removed, or the answer abstains | Unit + contract tests with injected bad citations; E4 reports citation precision with and without verification | ☐ |
+| FR-K7 | **Error analysis**: every failed evaluation item is labeled with a failure type (retrieval miss, correct chunk ranked too low, hallucination, wrong abstention, other) | E4 report contains failure-type counts and at least 5 worked examples | ☐ |
+| FR-K8 | **Prompt-injection robustness**: retrieved review text is untrusted data (delimited, never treated as instructions); a small adversarial set of reviews containing instructions is part of the evaluation | Test: answers do not follow injected instructions; E4 reports the pass rate | ☐ |
 
 ### 6.4 Orchestration (FR-O)
 | ID | Requirement | Acceptance | Status |
@@ -305,10 +328,10 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 | ID | Requirement | Acceptance | Status |
 |---|---|---|---|
 | FR-X1 | Deterministic hash bucketing, `salt = experiment_id`, configurable weights | Unit test: consistency, distribution; an A/A test shows no significant difference | ☐ |
-| FR-X2 | A group's `config` **actually drives behavior** (e.g. `rerank: llm|none`, `recall: hybrid|popular`) | Integration test: different groups take different code paths | ☐ |
+| FR-X2 | A group's `config` **actually drives behavior** (e.g. `recall: hybrid|popular`, `diversify: on|off`) | Integration test: different groups take different code paths | ☐ |
 | FR-X3 | Exposures and outcomes are persisted and linked by `request_id` | Per-group sample sizes can be queried | ☐ |
 | FR-X4 | Analysis: two-proportion z-test / bootstrap CI; explicitly states "no conclusion can be drawn" when the sample is too small | The analysis script produces a table | ☐ |
-| FR-X5 | Thompson Sampling is implemented **only in the simulator** and compared with fixed allocation (E9); reports are labeled *simulated* | Tier 2 | ☐ |
+| FR-X5 | **Deferred.** Thompson Sampling in a simulator (E9) | Not in plan (ADR-0011) | — |
 
 ### 6.8 Events (FR-E)
 | ID | Requirement | Acceptance | Status |
@@ -318,7 +341,7 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 | FR-E3 | **Idempotent** consumers: dedupe by `event_id`; ordering preserved per key | Duplicate-delivery test: state unchanged | ☐ |
 | FR-E4 | After N retries, events go to a DLQ (keeping the original message, the error and the attempt count); a replay tool is provided | Fault test | ☐ |
 | FR-E5 | Trace context propagates through Kafka headers; one trace spans HTTP → Kafka → consumer | The full chain is visible in Jaeger/Tempo | ☐ |
-| FR-E6 | Behavior-event replayer (can replay Amazon interactions / Retailrocket events at configurable speed) | Used by load tests and E6 | ☐ |
+| FR-E6 | Behavior-event replayer (replays Amazon interactions at configurable speed) | Used by load tests and E6 | ☐ |
 | FR-E7 | Consumer-group scale-out: `events.user_behavior.v1` has ≥ 3 partitions and 3 feature-updater instances run concurrently; randomly kill 1 instance to trigger a rebalance | Verify: 0 lost events; events for the same `user_id` stay ordered in its features; 0 side effects from reprocessing; rebalance recovery time recorded | ☐ |
 
 ### 6.9 Resilience (FR-S)
@@ -326,7 +349,7 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 |---|---|---|---|
 | FR-S1 | **Enforced** timeouts on every external call (fixes D4) | Static check + unit tests: no bare calls | ☐ |
 | FR-S2 | Retries: idempotent operations only; exponential backoff + jitter; bounded by the deadline and a retry budget | Unit test | ☐ |
-| FR-S3 | Circuit breakers (one each for LLM, vector search, Redis, inventory service): closed / open / half-open, with visible metrics | E8 | ☐ |
+| FR-S3 | Circuit breakers (one each for LLM, vector search, Redis, inventory store): closed / open / half-open, with visible metrics | E8 | ☐ |
 | FR-S4 | Bulkhead: a concurrency cap on LLM calls (semaphore); beyond it, fail fast and take the degraded path | Load test shows no cascade | ☐ |
 | FR-S5 | Graceful shutdown: stop consuming → finish in-flight work → commit offsets | Integration test | ☐ |
 
@@ -336,7 +359,7 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 | FR-B1 | OTel traces: one span per agent / node, with attributes including `degraded` and `cache_hit` | Visualization screenshots go into the report | ☐ |
 | FR-B2 | Prometheus: RED metrics, agent success rate / latency, LLM tokens and estimated cost, circuit-breaker state, Kafka lag, DLQ depth | Grafana dashboards | ☐ |
 | FR-B3 | Structured logs containing `request_id` and `trace_id` | | ☐ |
-| FR-B4 | Dashboard: experiment status, agent health, a trace link for a request, degradation counts | Demo-ready | ☐ |
+| FR-B4 | **Deferred.** Dashboard app; the Grafana panels from FR-B2 cover experiment status, agent health and degradation counts | Not in plan (ADR-0011) | — |
 
 ---
 
@@ -356,15 +379,15 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 ### 7.2 Degradation ladder (Flow R; read paths fail-open, reservation path fails closed)
 | Level | Trigger | Behavior |
 |---|---|---|
-| L0 | Normal | Features + hybrid recall + (optional LLM rerank) + inventory filter + cached copy |
-| L1 | LLM slow / unavailable | Skip rerank; use cached / template copy |
+| L0 | Normal | Features + hybrid recall + inventory filter + cached copy |
+| L1 | LLM slow / unavailable | Use cached / template copy |
 | L2 | Redis unavailable | Profile falls back to the default segment / latest snapshot; recall switches to popularity + content |
 | L3 | Vector search unavailable | Co-visitation + popularity only |
-| L4 | Inventory service unavailable | Return results marked `stock_unknown`, give no purchase-limit advice; **reservation requests fail outright** |
+| L4 | Inventory store unavailable | Return results marked `stock_unknown`, give no purchase-limit advice; **reservation requests fail outright** |
 | L5 | Multiple dependencies failing at once | In-process popular-items snapshot (static) |
 
 ### 7.3 Default timeout budgets (configurable)
-Flow R total deadline 1500 ms: profile 50 · recall 150 · inventory 100 · LLM rerank 800 (optional) · copy cache read 20. Flow Q total deadline 20 s: Router 2 s · retrieval 500 ms · answer synthesis 12 s.
+Flow R total deadline 1500 ms: profile 50 · recall 150 · inventory 100 · copy cache read 20 (the rest is slack). Flow Q total deadline 20 s: Router 2 s · retrieval 500 ms · answer synthesis 12 s.
 
 ---
 
@@ -374,14 +397,14 @@ Flow R total deadline 1500 ms: profile 50 · recall 150 · inventory 100 · LLM 
 | ID | Question | Setup | Metrics | Decision rule |
 |---|---|---|---|---|
 | **E1** | Which recall / ranking approach works? | Amazon temporal split; popularity / co-visit / embedding / hybrid | Recall@10/20, NDCG@10, HitRate, Coverage | Bootstrap 95% CIs. *Hypothesis*: hybrid > popularity; **if not true, report it as is** |
-| **E2** | Is LLM rerank worth it? | 1000-user subsample; rerank on/off | ΔNDCG, Δp95 latency, tokens and cost per request | Make it default-on only if the CI of ΔNDCG excludes 0 and cost is within budget |
-| **E3** | Which retrieval is best? | Ablation: BM25 / dense / hybrid RRF / (+ cross-encoder) | Recall@5/10, MRR, nDCG@10 | Pick and explain the default configuration |
-| **E4** | Are answers grounded? | Evaluation set (20% unanswerable) | Claim-level faithfulness (LLM judge, **agreement calibrated on 50 human-labeled items**), citation precision, abstention P/R | Report judge–human agreement |
-| **E5** | Is multi-agent better than single-agent? | 200 constrained shopping questions (category / price / stock / facts); same model, same seed; ≥ 3 runs per variant | Constraint satisfaction rate, groundedness, p50/p95 latency, tokens/cost, tool-call error rate | **"Not better" is an allowed conclusion**, with analysis of why (context isolation vs orchestration overhead) |
-| **E6** | Benefits and costs of the architecture evolution? | k6 constant arrival rate; stub LLM (fixed latency distribution); V1 vs V2 vs V3 | p50/p95/p99, max RPS within SLO (p99 ≤ target and errors < 1%), CPU/memory, event→feature freshness lag | Report machine specs and confidence intervals; **include cases where splitting makes things slower** |
+| **E2** | *Deferred* (LLM rerank) | — | — | Not in plan (ADR-0011) |
+| **E3** | Which retrieval is best? | Ablation: BM25 / dense / hybrid RRF / hybrid + cross-encoder; chunking strategy (by kind, by size) and top-k | Recall@5/10, MRR, nDCG@10, latency per stage | Pick and explain the default configuration; report where each stage helps and where it does not |
+| **E4** | Are answers grounded? | Evaluation set (≥ 150 questions, 20% unanswerable) + adversarial-review set (FR-K8); with and without citation verification (FR-K6) | Claim-level faithfulness (LLM judge, **agreement calibrated on 50 human-labeled items**), citation precision, abstention P/R, injection pass rate, failure-type counts (FR-K7) | Report judge–human agreement and the error taxonomy |
+| **E5** (pilot) | Is multi-agent better than single-agent? | 100 constrained shopping questions (category / price / stock / facts); same model, same seed; 2 runs per variant | Constraint satisfaction rate, groundedness, p50/p95 latency, tokens/cost, tool-call error rate | **"Not better" is an allowed conclusion**, with analysis of why (context isolation vs orchestration overhead); the sample is pilot-sized, so report intervals and say plainly what it cannot show |
+| **E6** | Benefits and costs of the architecture evolution? | k6 constant arrival rate; stub LLM (fixed latency distribution); V1 vs V2 | p50/p95/p99, max RPS within SLO (p99 ≤ target and errors < 1%), CPU/memory, event→feature freshness lag | Report machine specs and confidence intervals; **include cases where adding events makes things slower** |
 | **E7** | Is inventory strongly consistent? | 200–1000 concurrent reserves competing for S = 50; includes same-key replays and mid-flight process crashes | Oversell count, duplicate side-effect count, invariant violations | All must be 0 |
 | **E8** | Behavior under failures? | LLM +5 s latency / 500s; Redis kill; Kafka stop; Postgres restart; consumer crash; kill 1 of 3 instances in the consumer group (FR-E7) | Success rate, degradation rate, MTTR, lost events, duplicate side effects | Lost = 0, duplicate side effects = 0; degradation matches §7.2 |
-| **E9** (T2) | Does Thompson beat fixed allocation? | Simulator: Bernoulli arms with known true CTR + non-stationary scenario + A/A | Cumulative regret, share of traffic to the best arm, A/A false-positive rate | Labeled *simulated*; not extrapolated to production |
+| **E9** | *Deferred* (Thompson simulator) | — | — | Not in plan (ADR-0011) |
 
 ### 8.2 Evaluation harness requirements
 - One-command runs: `make eval-e1` … `make bench-e6`; output JSON + Markdown reports to `docs/results/<exp>/<commit>/`.
@@ -418,7 +441,7 @@ GET  /healthz  /readyz  /metrics
 ```
 Error format: RFC 7807 problem+json.
 
-### 9.2 Inventory service (V1 library interface = V3 HTTP interface)
+### 9.2 Inventory interface (library in V1; the HTTP shape is the contract if V3 is ever revived)
 ```
 POST   /v1/inventory/reservations   Header: Idempotency-Key   { item_id, qty, ttl_s }
         201 created | 200 replay (same key) | 409 insufficient_stock
@@ -436,7 +459,7 @@ GET    /v1/inventory/{item_id}
 | Topic | Key | Consumer | Semantics |
 |---|---|---|---|
 | `events.user_behavior.v1` | user_id | feature-updater | Update Redis sliding-window features |
-| `inventory.changes.v1` | item_id | cache-invalidator / dashboard | Invalidate cache, display |
+| `inventory.changes.v1` | item_id | cache-invalidator / metrics | Invalidate cache, display |
 | `reco.exposures.v1` | request_id | exposure-logger | Persist experiment exposures |
 | `*.dlq` | original key | replay tool | Keep the original message + error |
 
@@ -468,22 +491,22 @@ Person-days are rough estimates (single developer, full-time; rescale to your ac
 | **P0** Bootstrap & audit follow-through | New repo, CI skeleton, NOTICE/LICENSE, `compose` running Postgres + Redis, commit this SPEC and ADR-0001~0010 | `make up` passes; CI green | 3 |
 | **P1** Data pipeline | FR-D*; category selection (ADR-0002); data card | FR-D1~D4 ☑; statistics recorded in the data card | 4 |
 | **P2** Recommendation baselines + evaluation | FR-R1~R3, R5; E1 | E1 report produced | 5 |
-| **P3** RAG + evaluation | FR-O7 (LLMClient, the first thing in P3); FR-K1, K2, K4, K5; E3, E4 | E3, E4 reports produced | 5 |
-| **P4** Orchestration (modular monolith V1) | FR-O*, FR-I1~I4, FR-M*, FR-X1~X4, FR-R4; API; single-agent baseline; E2, E5 | Both flows work end to end; E2, E5 reports | 7 |
+| **P3** RAG + evaluation (deep) | FR-O7 (LLMClient, the first thing in P3); FR-K1–K8; E3, E4 | E3, E4 reports produced, including error taxonomy and injection results | 8 |
+| **P4** Orchestration (modular monolith V1) | FR-O*, FR-I1~I4, FR-M*, FR-X1~X4; API; single-agent baseline; E5 pilot | Both flows work end to end; E5 pilot report | 6 |
 | **P5** Event-driven V2 | FR-E1~E5, FR-I5; feature-updater, exposure-logger, DLQ; topics with ≥ 3 partitions and multi-instance consumption | Event-chain trace visible; duplicate-delivery test passes | 4 |
-| **P6** Split V3 (T2) | Independent inventory service; separately deployed consumers; FR-I6 | Both deployment shapes can be switched and run | 4 |
-| **P7** Resilience and observability | FR-S*, FR-B1~B3; wrap up caching and idempotency | Unit + integration tests pass; dashboards usable | 4 |
-| **P8** Benchmarks and failure injection | E6, E7, E8, (E9 + FR-X5, Tier 2); FR-E6, FR-E7 | Reports complete; E7/E8 criteria met | 5 |
-| **P9** Dashboard / demo / docs | FR-B4; README, architecture, results summary, demo video | All of §1.5 satisfied | 4 |
+| **P6** Split V3, **DEFERRED** | Not in plan (phase number kept so references stay stable); FR-I6 moves to P7 | — | 0 |
+| **P7** Resilience and observability | FR-S*, FR-I6, FR-B1~B3; wrap up caching and idempotency | Unit + integration tests pass; Grafana panels usable | 4 |
+| **P8** Benchmarks and failure injection | E6 (V1 vs V2), E7, E8; FR-E6, FR-E7 | Reports complete; E7/E8 criteria met | 4 |
+| **P9** Demo / docs | README, architecture, results summary, demo video | All of §1.5 satisfied | 3 |
 
-Total about 45 person-days ≈ 9 weeks (full-time). Ordering constraint: **P4 (a functionally correct V1) must come before P5/P6**, otherwise there is no "before vs after" to compare.
+Total about 41 person-days ≈ 8 weeks (full-time); scale to your actual weekly hours and treat it as optimistic (R9). Ordering constraint: **P4 (a functionally correct V1) must come before P5**, otherwise there is no "before vs after" to compare.
 
 ### 11.2 How each phase is run
 Before starting, break the phase's FRs into issues; when done, update the requirement status column, add ADRs and archive result reports; any deviation requires changing the spec first.
 
 ### 11.3 Cut order (when the schedule is tight, cut from the bottom up)
-1. E9 / Thompson simulator → 2. cross-encoder rerank (FR-K3) → 3. Retailrocket tenant → 4. P6 split (keeping the "V1 vs V2" comparison is enough) → 5. Shrink the LLM-rerank experiment E2 to a brief report.
-**Never cut**: data pipeline, E1, RAG evaluation, E5, Outbox + Kafka + idempotency, E7, E8.
+Already deferred (§3): P6 / V3, Retailrocket, E9, E2 / FR-R4, Dashboard, Milvus. If still behind, cut in this order: 1. the E5 pilot (keep the single-agent baseline interface, FR-O5) → 2. E6 (keep E7 and E8) → 3. the cross-encoder arm (FR-K3) in E3.
+**Never cut**: the five deep items in §1.6 (data + E1, RAG E3/E4 including FR-K6–K8, inventory E7, Outbox + Kafka + idempotent consumers, failure injection E8).
 
 ---
 
@@ -491,8 +514,8 @@ Before starting, break the phase's FRs into issues; when done, update the requir
 | ADR | Decision | Status |
 |---|---|---|
 | 0001 | Python only; delete Java/Go; LangGraph is the only orchestrator | Accepted |
-| 0002 | A single small Amazon category is the primary dataset; Retailrocket is demoted to Tier 2. The specific category is chosen after profiling in P1 and written back into this ADR | Accepted |
-| 0003 | Vector search uses pgvector (isolated behind a `VectorIndex` interface); Milvus only as a Tier 3 comparison (the upstream uses Milvus; pgvector removes one stateful component and can be combined with SQL filters) | Accepted |
+| 0002 | A single small Amazon category is the primary dataset; Retailrocket is deferred (ADR-0011). The specific category is chosen after profiling in P1 and written back into this ADR | Accepted |
+| 0003 | Vector search uses pgvector (isolated behind a `VectorIndex` interface); Milvus only as a deferred comparison (the upstream uses Milvus; pgvector removes one stateful component and can be combined with SQL filters) | Accepted |
 | 0004 | Modular monolith first; admission conditions for splitting are in §4.3 | Accepted |
 | 0005 | Apache Kafka KRaft single node + `aiokafka` (Redpanda is an acceptable swap) | Accepted |
 | 0006 | LLM: native Claude API behind the `LLMClient` abstraction. Division of labor: Haiku 5.5 → Router / marketing copy / dev debugging; Sonnet 5.5 → RAG answer generation; Opus 5.5 → evaluation judge only (a different tier than the model under test). P0–P2 need no LLM; local Ollama may be used for debugging, but **evaluation results count only if produced with Claude**. Initial total evaluation budget USD 30 | Accepted (model split and budget reviewed against actual usage at the end of P2; the owner must bring their own Console account and API key) |
@@ -500,6 +523,7 @@ Before starting, break the phase's FRs into issues; when done, update the requir
 | 0008 | At-least-once delivery + consumer-side idempotency; the inventory reservation path fails closed | Accepted |
 | 0009 | Evaluation: full-ranking metrics, temporal split, LLM response cache | Accepted |
 | 0010 | New empty repository `commerce-agent`, **not a fork of the upstream**; borrow ideas only, credit it in `NOTICE`, copy none of its code or docs (the upstream has no LICENSE file, see §2.4). Re-evaluate if the upstream later adds a license | Accepted (confirmed by the owner) |
+| 0011 | Depth over breadth: five deep items (§1.6) carry the project, with a Definition of Done that gates every phase. Backend / distributed patterns are the flagship, and RAG is also deep (FR-K6–K8 added, cross-encoder FR-K3 restored as an E3 arm). Deferred: P6 / V3, Retailrocket, E2 / FR-R4, E9 / FR-X5, Dashboard FR-B4. Reduced: E5 to a pilot, E6 to V1 vs V2 | Accepted (owner confirmed) |
 
 ---
 
@@ -538,6 +562,7 @@ Before starting, break the phase's FRs into issues; when done, update the requir
 | 2026-11-22 | v0.4 | Added FR-E7 (consumer-group scale-out and rebalance verification); updated P5, P8, E8; version header set to v0.4 | — |
 | 2026-11-22 | v0.5 | Added ADR-0010 (new repository instead of a fork); synced §2.4 with the repo name and license information | — |
 | 2026-11-22 | v0.6 | Translated the whole spec into English; fixed ADR references to the four-digit form (ADR-0001 … ADR-0010); no change to requirements or decisions | — |
+| 2026-11-23 | v0.7 | ADR-0011 (depth over breadth): added §1.6 deep items and Definition of Done; deferred P6 / V3, Retailrocket, E2 / FR-R4, E9 / FR-X5, FR-B4; reduced E5 (pilot) and E6 (V1 vs V2); added FR-K6–K8 and restored FR-K3 for RAG depth; re-estimated P3 / P4 / P8 / P9 (total ≈ 41 person-days) | — |
 
 ---
 

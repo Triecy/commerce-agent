@@ -4,7 +4,7 @@ Read this file at the start of every session. It summarizes the project context 
 
 ## 1. Source of truth
 
-- `SPEC.md` (repo root) is the single source of truth. Current version: v0.6 (baseline, approved by the owner; written in English).
+- `SPEC.md` (repo root) is the single source of truth. Current version: v0.7 (baseline, approved by the owner; scope refocused on depth by ADR-0011; written in English).
 - Work **strictly in the phase order of SPEC §11** (P0 → P9). Do not jump ahead. Each phase has exit criteria; a phase is done only when they are met.
 - Every requirement has an ID (`FR-*`, `NFR-*`). Reference IDs in commit messages, PR descriptions and test names (e.g. `test_FR_I2_no_oversell`). Update the status column (☐ / ◐ / ☑) in SPEC when you finish a requirement.
 - If the spec turns out to be wrong or infeasible: **stop, propose a spec change, and get the owner's approval.** Change `SPEC.md` in the same PR and add a row to its changelog (§15). Never silently deviate.
@@ -12,7 +12,7 @@ Read this file at the start of every session. It summarizes the project context 
 
 ## 2. The project in one paragraph
 
-Commerce Agent is a portfolio-grade, **single-developer** e-commerce system built on real public data (Amazon Reviews 2023, one small category). It has two request flows: **Flow R** (personalized recommendations, mostly deterministic workflow) and **Flow Q** (shopping assistant with RAG, citations and abstention, genuinely agentic). It starts as a modular monolith and evolves into an event-driven backend (Postgres outbox → Kafka → idempotent consumers, later an independent inventory service). Every architectural step is validated with benchmarks, concurrency tests and failure injection. The project narrative: *"Started from a mock-data multi-agent prototype; built a real data pipeline, evaluated recommendation and RAG, tested whether multi-agent beats single-agent, evolved to event-driven architecture, and verified consistency and resilience by experiment."*
+Commerce Agent is a portfolio-grade, **single-developer** e-commerce system built on real public data (Amazon Reviews 2023, one small category). It has two request flows: **Flow R** (personalized recommendations, mostly deterministic workflow) and **Flow Q** (shopping assistant with RAG, citations and abstention, genuinely agentic). It starts as a modular monolith and evolves into an event-driven backend (Postgres outbox → Kafka → idempotent consumers); an independent inventory service is deferred (ADR-0011). Every architectural step is validated with benchmarks, concurrency tests and failure injection. The project narrative: *"Started from a mock-data multi-agent prototype; built a real data pipeline, evaluated recommendation and RAG, tested whether multi-agent beats single-agent, evolved to event-driven architecture, and verified consistency and resilience by experiment."*
 
 ## 3. Owner context
 
@@ -27,8 +27,8 @@ Commerce Agent is a portfolio-grade, **single-developer** e-commerce system buil
 | ADR | Decision |
 |---|---|
 | 0001 | Python only. No Java/Go. **LangGraph is the only orchestrator.** |
-| 0002 | **Amazon Reviews 2023, one small category** is the primary dataset (items + text + reviews + timestamped interactions; supports recsys, RAG, copy, inventory simulation on the same items). Category chosen in P1 after profiling (target: ~20k–100k items after k-core, ≥200k interactions, English); record it in ADR-0002 and `docs/data-card.md`. **Retailrocket is Tier 2** (event replay, load test, generalization eval); it has hashed item properties, no readable text, and must NOT be joined with Amazon. |
-| 0003 | Vector search with **pgvector** behind a `VectorIndex` interface. Milvus is only a Tier 3 comparison. |
+| 0002 | **Amazon Reviews 2023, one small category** is the primary dataset (items + text + reviews + timestamped interactions; supports recsys, RAG, copy, inventory simulation on the same items). Category chosen in P1 after profiling (target: ~20k–100k items after k-core, ≥200k interactions, English); record it in ADR-0002 and `docs/data-card.md`. **Retailrocket is deferred (ADR-0011)**: do not build or scaffold it. It has hashed item properties and no readable text; if ever revived it must NOT be joined with Amazon. |
+| 0003 | Vector search with **pgvector** behind a `VectorIndex` interface. A Milvus comparison is deferred (ADR-0011). |
 | 0004 | Modular monolith first; split a service only if (a) it has independent scaling/availability/consistency needs and (b) the benefit can be measured. |
 | 0005 | **Apache Kafka (KRaft, single node)** with `aiokafka` (Redpanda is an acceptable swap). |
 | 0006 | LLM = **Claude via the native API behind an `LLMClient` abstraction** (FR-O7). Haiku 5.5 → Router, marketing copy, dev/debug; Sonnet 5.5 → RAG answer generation; Opus 5.5 → evaluation judge only (a different tier than the model under test). Local **Ollama** is allowed for early debugging only; **evaluation results count only if produced with Claude.** Initial total evaluation budget **$30 USD**, to be recalibrated at the end of P2. P0–P2 need no LLM. |
@@ -36,18 +36,23 @@ Commerce Agent is a portfolio-grade, **single-developer** e-commerce system buil
 | 0008 | At-least-once delivery + idempotent consumers; read paths fail-open, inventory reservation fails closed. |
 | 0009 | Evaluation: full-ranking metrics (no sampled negatives), temporal split (leave-last-out), LLM response cache for reproducibility. |
 | 0010 | **New empty repository `commerce-agent`; NOT a fork of the upstream.** Borrow ideas only, credit the upstream in `NOTICE`, copy no code or docs (the upstream has no LICENSE file). Confirmed by the owner. |
+| 0011 | **Depth over breadth.** Five deep items (SPEC §1.6) carry the project; a Definition of Done gates every phase. Backend/distributed patterns are the flagship; RAG is also deep (FR-K6–K8 added, FR-K3 cross-encoder restored as an E3 arm). Deferred: P6/V3, Retailrocket, E2/FR-R4, E9/FR-X5, FR-B4. Reduced: E5 to a pilot, E6 to V1 vs V2. Confirmed by the owner. |
 
-## 5. Scope tiers
+## 5. Scope tiers (SPEC §3, ADR-0011)
 
-- **Tier 1 (must):** data pipeline, recsys baselines + offline eval, RAG + eval, LangGraph two-flow orchestration, Postgres inventory + idempotency, outbox + Kafka + consumers, observability, experiments E1–E8.
-- **Tier 2 (cuttable, cut in this order if behind):** E9/Thompson simulator → cross-encoder rerank → Retailrocket tenant → P6 service extraction (keep the V1-vs-V2 comparison) → shrink E2.
-- **Tier 3 (stretch):** Milvus comparison, K8s, gRPC, online learning.
-- **Never cut:** data pipeline, E1, RAG evaluation, E5, outbox+Kafka+idempotency, E7, E8.
-- **Added after discussion:** FR-E7 — Kafka topic with ≥3 partitions, 3 consumer instances, kill one, verify no loss, per-key ordering, no duplicate side effects, record rebalance time.
+- **Tier 1 (must, deep): the five deep items of SPEC §1.6.**
+  1. Data pipeline + recommendation evaluation (FR-D*, FR-R1–R3, FR-R5, E1).
+  2. RAG grounded Q&A (FR-K1–K8, E3, E4).
+  3. Inventory consistency + idempotency (FR-I1–I5, E7).
+  4. Outbox → Kafka → idempotent consumers (FR-E1–E7, including the FR-E7 consumer-group kill/rebalance test).
+  5. Failure injection and resilience (FR-S*, FR-O3, FR-O4, FR-I6, E8).
+- **Tier 2 (supporting, lean):** LangGraph two-flow orchestration (FR-O*), marketing copy (FR-M*), experiment framework (FR-X1–X4), observability (FR-B1–B3), E5 pilot, E6 (V1 vs V2). Keep these small. If behind, cut in this order: **E5 pilot** (keep the FR-O5 interface) → **E6** (keep E7 and E8) → **FR-K3** cross-encoder arm in E3.
+- **Deferred (do not build, do not scaffold):** P6 / V3 independent inventory service and separately deployed consumers, Retailrocket tenant, FR-R4 / E2 (LLM rerank), FR-X5 / E9 (Thompson simulator), FR-B4 (dashboard app; Grafana panels cover it), Milvus comparison, K8s, gRPC, online learning. No placeholder files, modules, flags or compose services for these. Revisit only after all of Tier 1 meets the Definition of Done, and only through a spec change.
+- **Never cut:** the five deep items above.
 
 ## 6. Agents: be honest about what is an LLM
 
-Only **Router, Knowledge (RAG answer synthesis) and Marketing Copy** are LLM-driven. **Profile, Recommendation (LLM rerank is a feature flag, default off) and Inventory are deterministic services.** Experiment E5 compares a single-agent baseline (one Claude with all tools) against the multi-agent workflow. **The result is allowed to be "multi-agent is not better"** — report it honestly; the two implementations share one interface (FR-O5), so the default can be switched.
+Only **Router, Knowledge (RAG answer synthesis) and Marketing Copy** are LLM-driven. **Profile, Recommendation and Inventory are deterministic services.** LLM rerank (FR-R4 / E2) is deferred (ADR-0011), so recommendation has no LLM at all. Experiment E5 compares a single-agent baseline (one Claude with all tools) against the multi-agent workflow. **The result is allowed to be "multi-agent is not better"** — report it honestly; the two implementations share one interface (FR-O5), so the default can be switched.
 
 ## 7. Engineering rules
 
@@ -61,6 +66,12 @@ Only **Router, Knowledge (RAG answer synthesis) and Marketing Copy** are LLM-dri
 8. **Quality bar:** `ruff` + `mypy` clean; core modules (resilience, inventory, events, experiments) ≥ 80% unit coverage; integration tests use real containers (testcontainers).
 9. **Simulated things are labeled as simulated** (inventory, Thompson sampling results).
 10. Keep PRs small and phase-scoped. Don't refactor unrelated code. Don't push to a remote or open PRs unless the owner asks.
+11. **Depth over breadth (ADR-0011).** Prefer taking a deep item further over adding a new feature. A phase cannot close until this **Definition of Done** (SPEC §1.6) holds for each of its deep items and requirement groups:
+    1. Core paths are covered by automated tests, named with the requirement ID.
+    2. A result report exists in `docs/results/` with method, numbers, **limitations**, and "what was tried and did not work".
+    3. Related decisions are recorded as ADRs.
+    4. One `make` command reproduces the result from a clean checkout.
+    5. Requirement statuses in SPEC are updated (☐ / ◐ / ☑).
 
 ## 8. Notes about the upstream repo (reference only)
 
@@ -68,7 +79,7 @@ Upstream: `bcefghj/multi-agent-ecommerce-system` (no LICENSE file despite an MIT
 
 ## 9. What this project is NOT
 
-No real payments/orders/accounts, no polished frontend (dashboard only needs to be clear), no Java/Go versions, no K8s in the main plan, no claim of large-scale distribution. Everything runs on one machine via Docker Compose; describe it as "distributed-systems patterns (outbox, at-least-once + idempotency, eventual consistency, partial failure handling, consumer-group rebalance) implemented and verified", not as a high-QPS distributed system.
+No real payments/orders/accounts, no polished frontend and no dashboard app (Grafana panels only need to be clear), no Java/Go versions, no K8s in the main plan, no claim of large-scale distribution. Everything runs on one machine via Docker Compose; describe it as "distributed-systems patterns (outbox, at-least-once + idempotency, eventual consistency, partial failure handling, consumer-group rebalance) implemented and verified", not as a high-QPS distributed system.
 
 ## 10. Target layout and commands
 

@@ -12,7 +12,7 @@ Recommendation, RAG, marketing copy and inventory simulation should all operate 
 
 - The primary dataset is **one small category of Amazon Reviews 2023 (McAuley Lab)**: item metadata (title, description, features), review text, and timestamped user-item interactions.
 - **The specific category is chosen in P1 after profiling** and written back into this ADR and `docs/data-card.md`. Selection criteria: English; after k-core roughly 20k-100k items; at least 200k interactions; enough text per item for RAG.
-- Retailrocket is Tier 2: event replay, load testing and generalization evaluation only, as a separate tenant. It is never merged with Amazon data.
+- Retailrocket is deferred (ADR-0011): not planned and not scaffolded. If it is ever revived, it is a separate tenant for event replay, load testing and generalization evaluation only, and it is never merged with Amazon data.
 - License and fields are verified at download time.
 
 ## Consequences
