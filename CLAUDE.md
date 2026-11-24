@@ -4,7 +4,7 @@ Read this file at the start of every session. It summarizes the project context 
 
 ## 1. Source of truth
 
-- `SPEC.md` (repo root) is the single source of truth. Current version: v0.7 (baseline, approved by the owner; scope refocused on depth by ADR-0011; written in English).
+- `SPEC.md` (repo root) is the single source of truth. Current version: v0.7.1 (baseline, approved by the owner; scope refocused on depth by ADR-0011; written in English).
 - Work **strictly in the phase order of SPEC §11** (P0 → P9). Do not jump ahead. Each phase has exit criteria; a phase is done only when they are met.
 - Every requirement has an ID (`FR-*`, `NFR-*`). Reference IDs in commit messages, PR descriptions and test names (e.g. `test_FR_I2_no_oversell`). Update the status column (☐ / ◐ / ☑) in SPEC when you finish a requirement.
 - If the spec turns out to be wrong or infeasible: **stop, propose a spec change, and get the owner's approval.** Change `SPEC.md` in the same PR and add a row to its changelog (§15). Never silently deviate.
