@@ -1,1 +1,3 @@
-"""Agents: router, profile, recommender, knowledge, inventory client, marketing, single-agent baseline (P4)."""
+"""Agents: router, profile, recommender, knowledge, inventory client, marketing copy,
+and the single-agent baseline (P4).
+"""

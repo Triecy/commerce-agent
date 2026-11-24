@@ -1,1 +1,3 @@
-"""LLMClient abstraction with Claude, Ollama, Fake implementations and a response cache (FR-O7, P3)."""
+"""LLMClient abstraction: Claude, Ollama and Fake implementations plus a response cache
+(FR-O7, P3).
+"""
