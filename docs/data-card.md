@@ -47,7 +47,13 @@ Checked on 2026-11-23 before the review file was downloaded.
   conservative position:
   - The data is **never redistributed**. Scripts download it from the official source;
     `data/` is git-ignored. Result reports contain aggregates only.
-  - Demos and reports quote at most short review excerpts, with item IDs, never bulk text.
+  - **Review text is never quoted in public material.** Result reports, the README and
+    other published docs cite items by `item_id` only, with a paraphrased summary written
+    by the project (for example "several reviewers say the controller drifts"). They never
+    contain verbatim review text, not even short excerpts (SPEC §14).
+  - Evaluation sets, human-labeled files and any other file that contains review text
+    live in the git-ignored local directory `data/private/` (covered by the `/data/`
+    rule in `.gitignore`). Only their aggregates, IDs and checksums are committed.
   - **No commercial use.** The paper is cited in the README and in every report that uses
     the data.
 - If the authors publish a license later, re-check this section.

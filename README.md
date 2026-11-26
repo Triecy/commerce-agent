@@ -10,8 +10,18 @@ It starts as a modular monolith and evolves into an event-driven backend (Postgr
 idempotent consumers). Every architectural step is meant to be checked with benchmarks,
 concurrency tests and failure injection.
 
-**Status:** Phase P1 (data pipeline) done: the Video_Games dataset loads into Postgres with
-`make data`. No model or benchmark results yet. Any number this README states later will link to a report in `docs/results/`.
+**Status:** Phase P2 (recommendation baselines and offline evaluation) done. `make data`
+loads the Video_Games dataset; `make eval-e1` reproduces experiment E1 (popularity,
+co-visitation, content embedding, hybrid RRF, explainable ranker with diversity
+re-ranking). Results and their limitations are in [docs/results/e1/](docs/results/e1/).
+Every number this README states links to a report in `docs/results/`.
+
+E1 headline (offline, Amazon Video_Games leave-last-out split, full ranking over 25,612
+items, 94,762 test users, bootstrap 95% CI): NDCG@10 rises from 0.0127 [0.0122, 0.0132]
+for popularity to 0.0529 [0.0518, 0.0541] for the full pipeline (hybrid RRF + ranker +
+MMR). The full pipeline also beats the strongest single route, co-visitation, but only
+narrowly: ΔNDCG@10 +0.0029 [0.0024, 0.0033]. Details, caveats and negative results:
+[E1 report](docs/results/e1/).
 
 The design, requirements and roadmap live in [SPEC.md](SPEC.md), which is the single source of
 truth. Decisions are recorded in [docs/adr/](docs/adr/).
@@ -19,7 +29,7 @@ truth. Decisions are recorded in [docs/adr/](docs/adr/).
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) (installs Python 3.12 automatically)
-- Docker Desktop (or another Docker engine with Compose v2), needed only for `make up`
+- A Docker engine with Compose v2 (Docker Desktop, or Colima on macOS), needed only for `make up`
 - GNU make
 
 ## Quickstart
@@ -34,6 +44,7 @@ make audit     # pip-audit on uv.lock (known CVEs)
 make up        # Postgres 16 + pgvector and Redis 7; waits until both are healthy
 make data      # download (pinned, ~0.9 GB), split, simulated inventory, load; idempotent
 make test-integration  # migrations and loader against a real Postgres (testcontainers)
+make eval-e1   # E1: tune on validation, test once; needs the optional ml group (torch, ~1 GB)
 make down      # stop (data volumes are kept)
 ```
 
@@ -54,6 +65,10 @@ official source and never redistributed in this repository. No license is stated
 data; see [docs/data-card.md](docs/data-card.md) for the terms that were checked, the
 usage rules this project follows, the statistics and the known biases. Inventory is
 **simulated**.
+
+Reports and this README cite items by ID with paraphrased summaries only; they never quote
+review text. Files that contain review text (evaluation sets, labels) live in the git-ignored
+`data/private/`.
 
 If you use this data, cite: Hou, Li, He, Yan, Chen, McAuley. *Bridging Language and Items
 for Retrieval and Recommendation.* arXiv:2403.03952, 2024.
