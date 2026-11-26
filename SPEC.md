@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Version | v0.7.1 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
+| Version | v0.7.2 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
 | Date | 2026-11-22 |
 | Upstream | `bcefghj/multi-agent-ecommerce-system` @ main (2 commits; cloned, Python implementation reviewed) |
 | Project name | Commerce Agent (repository `commerce-agent`; Python package `commerce_agent`) |
@@ -253,7 +253,7 @@ experiment_outcomes(request_id, event_type, value, ts)
 ```
 
 ### 5.3 Filtering and splitting
-- k-core filtering (users / items; k decided in P1); deduplication; the rating → implicit-feedback rule is written into the data card.
+- k-core filtering (users / items): decided in P1 as the official Video_Games 5-core file used as is (k = 5, no extra filtering); deduplication; the rating → implicit-feedback rule (every review is a positive interaction, rating kept in `value`) is written into the data card.
 - **Temporal split**: each user's last interaction is test, the second-to-last is validation, the rest is train (leave-last-out, avoiding future leakage).
 - Evaluation uses **full ranking** (rank over all candidate items); sampled-negative metrics are not used (they are biased).
 
@@ -269,10 +269,10 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 ### 6.1 Data (FR-D)
 | ID | Requirement | Acceptance | Status |
 |---|---|---|---|
-| FR-D1 | Download + normalization scripts producing the Canonical Schema | `make data` succeeds idempotently on an empty DB; row counts match the data card | ☐ |
-| FR-D2 | k-core + temporal split | Unit test: the split has no temporal leakage | ☐ |
-| FR-D3 | Inventory simulator (long tail, restocking, fixed seed) | Two runs with the same seed produce identical output | ☐ |
-| FR-D4 | Data card | `docs/data-card.md` is complete | ☐ |
+| FR-D1 | Download + normalization scripts producing the Canonical Schema | `make data` succeeds idempotently on an empty DB; row counts match the data card | ☑ |
+| FR-D2 | k-core + temporal split | Unit test: the split has no temporal leakage | ☑ |
+| FR-D3 | Inventory simulator (long tail, restocking, fixed seed) | Two runs with the same seed produce identical output | ☑ |
+| FR-D4 | Data card | `docs/data-card.md` is complete | ☑ |
 
 ### 6.2 Recommendation (FR-R)
 | ID | Requirement | Acceptance | Status |
@@ -396,7 +396,7 @@ Flow R total deadline 1500 ms: profile 50 · recall 150 · inventory 100 · copy
 ### 8.1 Experiment list
 | ID | Question | Setup | Metrics | Decision rule |
 |---|---|---|---|---|
-| **E1** | Which recall / ranking approach works? | Amazon temporal split; popularity / co-visit / embedding / hybrid | Recall@10/20, NDCG@10, HitRate, Coverage | Bootstrap 95% CIs. *Hypothesis*: hybrid > popularity; **if not true, report it as is** |
+| **E1** | Which recall / ranking approach works? | Amazon temporal split; popularity / co-visit / embedding / hybrid. Main result on all interactions; robustness variant on rating ≥ 4 only (a limitation, see data card) | Recall@10/20, NDCG@10, HitRate, Coverage | Bootstrap 95% CIs. *Hypothesis*: hybrid > popularity; **if not true, report it as is** |
 | **E2** | *Deferred* (LLM rerank) | — | — | Not in plan (ADR-0011) |
 | **E3** | Which retrieval is best? | Ablation: BM25 / dense / hybrid RRF / hybrid + cross-encoder; chunking strategy (by kind, by size) and top-k | Recall@5/10, MRR, nDCG@10, latency per stage | Pick and explain the default configuration; report where each stage helps and where it does not |
 | **E4** | Are answers grounded? | Evaluation set (≥ 150 questions, 20% unanswerable) + adversarial-review set (FR-K8); with and without citation verification (FR-K6) | Claim-level faithfulness (LLM judge, **agreement calibrated on 50 human-labeled items**), citation precision, abstention P/R, injection pass rate, failure-type counts (FR-K7) | Report judge–human agreement and the error taxonomy |
@@ -564,6 +564,7 @@ Already deferred (§3): P6 / V3, Retailrocket, E9, E2 / FR-R4, Dashboard, Milvus
 | 2026-11-22 | v0.6 | Translated the whole spec into English; fixed ADR references to the four-digit form (ADR-0001 … ADR-0010); no change to requirements or decisions | — |
 | 2026-11-23 | v0.7 | ADR-0011 (depth over breadth): added §1.6 deep items and Definition of Done; deferred P6 / V3, Retailrocket, E2 / FR-R4, E9 / FR-X5, FR-B4; reduced E5 (pilot) and E6 (V1 vs V2); added FR-K6–K8 and restored FR-K3 for RAG depth; re-estimated P3 / P4 / P8 / P9 (total ≈ 41 person-days) | — |
 | 2026-11-23 | v0.7.1 | Consistency fixes after ADR-0011, no requirement changes: §1.2 narrative no longer mentions an independent inventory service; §1.3 G6 drops the experiment simulator; §2.3 drops Thompson-in-simulator (`services/ab_test.py`) and optional LLM rerank (`agents/product_rec_agent.py`); §4.2 Inventory is a Postgres inventory store; §4.6 layout drops `rerank_llm.py` and `thompson_sim` | — |
+| 2026-11-23 | v0.7.2 | P1 decisions recorded (owner approved): category Video_Games (ADR-0002); §5.3 k = 5 using the official 5-core file as is, every review is a positive interaction; §8.1 E1 adds a rating ≥ 4 robustness variant; FR-D1–D4 ☑ | — |
 
 ---
 

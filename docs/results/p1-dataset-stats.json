@@ -1,0 +1,142 @@
+{
+  "dataset": {
+    "category": "Video_Games",
+    "k_core": 5,
+    "source": "amazon2023/Video_Games"
+  },
+  "inputs_sha256": {
+    "Video_Games.csv.gz": "a2bde5f3b945960d161538c200dd87845e6ee471b46da96410dde61613c6901c",
+    "Video_Games.jsonl.gz": "52d8762c94a5b99d3bccdb31c15cc6c99e05c89f9042cd3753b3b623a44bc193",
+    "meta_Video_Games.jsonl.gz": "ced9696b0874121327a438bfe9d3d01aba45da158e58f94f4920352d75fc1fc9"
+  },
+  "interactions": {
+    "density": 0.000336,
+    "interactions": 814586,
+    "interactions_per_item": {
+      "max": 2955.0,
+      "median": 12.0,
+      "min": 5.0,
+      "p90": 64.0,
+      "p99": 341.0
+    },
+    "interactions_per_user": {
+      "max": 473.0,
+      "median": 6.0,
+      "min": 5.0,
+      "p90": 14.0,
+      "p99": 38.0
+    },
+    "items": 25612,
+    "rating_distribution": {
+      "1.0": 52563,
+      "2.0": 36809,
+      "3.0": 70347,
+      "4.0": 134800,
+      "5.0": 520067
+    },
+    "rating_ge_4_share": 0.8039,
+    "same_user_same_timestamp_groups": 61,
+    "split": {
+      "test": 94762,
+      "train": 625062,
+      "valid": 94762
+    },
+    "split_rating_ge_4": {
+      "test": 74022,
+      "train": 505046,
+      "valid": 75799
+    },
+    "users": 94762
+  },
+  "inventory": {
+    "available": {
+      "max": 2101.0,
+      "median": 34.0,
+      "min": 0.0,
+      "p90": 103.0,
+      "p99": 279.0
+    },
+    "config": {
+      "alpha": 0.5,
+      "min_stock": 0,
+      "noise_sigma": 0.6,
+      "out_of_stock_rate": 0.05,
+      "restock_days_popular": 3,
+      "restock_days_tail": 30,
+      "restock_fraction": 0.5,
+      "scale": 500.0,
+      "seed": 20261122
+    },
+    "items": 25612,
+    "out_of_stock_share": 0.0524,
+    "restock_every_days": {
+      "max": 30.0,
+      "median": 30.0,
+      "min": 3.0,
+      "p90": 30.0,
+      "p99": 30.0
+    },
+    "simulated": true,
+    "top_decile_share_of_units": 0.3581
+  },
+  "items": {
+    "category_level2_top": {
+      "(none)": 869,
+      "Legacy Systems": 11708,
+      "Mac": 155,
+      "Nintendo Switch": 2268,
+      "PC": 6355,
+      "PlayStation 4": 1824,
+      "PlayStation 5": 292,
+      "PlayStation Digital Content": 143,
+      "Xbox One": 1446,
+      "Xbox Series X & S": 135
+    },
+    "empty_title_count": 1,
+    "has_brand": 0.9954,
+    "has_category_path": 0.9661,
+    "has_description": 0.7339,
+    "has_feature_bullets": 0.871,
+    "has_image_url": 1.0,
+    "has_price": 0.6689,
+    "has_title": 1.0,
+    "items": 25612,
+    "main_category_top": {
+      "(missing)": 514,
+      "All Electronics": 2645,
+      "Cell Phones & Accessories": 414,
+      "Computers": 3263,
+      "Home Audio & Theater": 57,
+      "Industrial & Scientific": 125,
+      "Software": 204,
+      "Tools & Home Improvement": 55,
+      "Toys & Games": 217,
+      "Video Games": 17930
+    }
+  },
+  "outputs_sha256": {
+    "inventory_simulated.csv.gz": "30880a88447797a5d72fa9892cbb8370c7ccd4cd7ebd9ce60b3bd8a3d89e49fb",
+    "test.csv.gz": "59e2416a8c4fac669a0dbb860c5af67e5e00e551db154ee732517afc80fd5902",
+    "train.csv.gz": "6f00a28edadaa75d344b4fffdfd8e361a609986bf84cb9bf3460b55d3f2561fa",
+    "valid.csv.gz": "6dd34787b8268611b3b13144c4a5e85412726f0bff4e507966e65a9eca08d307"
+  },
+  "reviews": {
+    "empty_text_share": 0.0007,
+    "review_text_chars": {
+      "max": 36893.0,
+      "median": 130.0,
+      "min": 0.0,
+      "p90": 716.0,
+      "p99": 3112.0
+    },
+    "reviews_for_5core_items": 3955684,
+    "reviews_matching_5core_interactions": 829104,
+    "reviews_per_item": {
+      "max": 18105.0,
+      "median": 50.0,
+      "min": 5.0,
+      "p90": 319.0,
+      "p99": 1780.0
+    }
+  }
+}

@@ -5,7 +5,7 @@ SHELL := /bin/bash
 UV      ?= uv
 COMPOSE := docker compose -f deploy/compose.yml --env-file .env --profile core
 
-.PHONY: help install up down ps logs stack-check test lint typecheck fmt audit check require-docker
+.PHONY: help install up down ps logs stack-check test lint typecheck fmt audit profile-categories test-integration migrate data data-reset check require-docker
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-12s %s\n", $$1, $$2}'
@@ -39,6 +39,13 @@ stack-check: require-docker .env ## Verify pgvector is installed and Redis answe
 test: ## Run unit tests (offline, no API keys)
 	$(UV) run pytest tests/unit
 
+# testcontainers needs the Docker socket of the active context (Colima on the owner's Mac).
+DOCKER_HOST ?= $(shell docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null)
+
+test-integration: require-docker ## Integration tests against real containers (testcontainers)
+	DOCKER_HOST=$(DOCKER_HOST) TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock \
+		$(UV) run pytest tests/integration -m integration
+
 lint: ## Ruff lint + format check
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
@@ -49,6 +56,19 @@ typecheck: ## mypy (strict for commerce_agent.common)
 fmt: ## Auto-format and apply safe lint fixes
 	$(UV) run ruff format .
 	$(UV) run ruff check --fix .
+
+migrate: .env ## Apply database migrations (alembic upgrade head); needs `make up`
+	$(UV) run alembic upgrade head
+
+data: migrate ## P1: download (pinned), split, simulate inventory, load Postgres; idempotent
+	$(UV) run python -m commerce_agent.data.pipeline
+
+data-reset: .env ## Drop all P1 tables and rebuild them from scratch (destroys loaded data)
+	$(UV) run alembic downgrade base
+	$(MAKE) data
+
+profile-categories: ## P1: profile candidate Amazon categories (downloads ~570 MB to data/raw)
+	$(UV) run python -m commerce_agent.data.profile --with-meta --out docs/results/p1-category-profiling.json
 
 PIP_AUDIT_VERSION ?= 2.10.1
 AUDIT_REQ := .audit-requirements.txt

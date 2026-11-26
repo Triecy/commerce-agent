@@ -17,7 +17,7 @@ Commerce Agent is a portfolio-grade, **single-developer** e-commerce system buil
 ## 3. Owner context
 
 - Solo developer building this for learning and a portfolio/resume. Wants engineering depth in three areas: AI application engineering, backend engineering, distributed-systems patterns.
-- The owner chats in **Chinese**. Reply to the owner in Chinese unless asked otherwise. **All code, comments, docs, commit messages and file contents are in English.**
+- **Reply to the owner in English.** The owner may write in Chinese, but replies, summaries and checklists are in English unless a specific message explicitly asks for another language. **All code, comments, docs, commit messages and file contents are in English.**
 - Owner's machine: **macOS 13 (Apple Silicon)**. The Docker engine is **Colima**, not Docker Desktop (Docker CLI + Compose v2 against the `colima` context). After a reboot, run `colima start` before `make up`; if `docker info` fails, check `colima status` first.
 - The owner will use the Anthropic Console API key for LLM calls. Never ask the owner to paste a key into the chat; read it from the `ANTHROPIC_API_KEY` environment variable / `.env` (git-ignored).
 - Copyright holder name for LICENSE/NOTICE: ask the owner if it is not given. Do not invent one.
@@ -27,7 +27,7 @@ Commerce Agent is a portfolio-grade, **single-developer** e-commerce system buil
 | ADR | Decision |
 |---|---|
 | 0001 | Python only. No Java/Go. **LangGraph is the only orchestrator.** |
-| 0002 | **Amazon Reviews 2023, one small category** is the primary dataset (items + text + reviews + timestamped interactions; supports recsys, RAG, copy, inventory simulation on the same items). Category chosen in P1 after profiling (target: ~20k–100k items after k-core, ≥200k interactions, English); record it in ADR-0002 and `docs/data-card.md`. **Retailrocket is deferred (ADR-0011)**: do not build or scaffold it. It has hashed item properties and no readable text; if ever revived it must NOT be joined with Amazon. |
+| 0002 | **Amazon Reviews 2023, one small category** is the primary dataset (items + text + reviews + timestamped interactions; supports recsys, RAG, copy, inventory simulation on the same items). **Category: Video_Games** (chosen in P1; official 5-core file as is, every review is a positive interaction; see ADR-0002 and `docs/data-card.md`). No license is stated for the data: never redistribute it, publish aggregates only, no commercial use. **Retailrocket is deferred (ADR-0011)**: do not build or scaffold it. It has hashed item properties and no readable text; if ever revived it must NOT be joined with Amazon. |
 | 0003 | Vector search with **pgvector** behind a `VectorIndex` interface. A Milvus comparison is deferred (ADR-0011). |
 | 0004 | Modular monolith first; split a service only if (a) it has independent scaling/availability/consistency needs and (b) the benefit can be measured. |
 | 0005 | **Apache Kafka (KRaft, single node)** with `aiokafka` (Redpanda is an acceptable swap). |
@@ -65,13 +65,14 @@ Only **Router, Knowledge (RAG answer synthesis) and Marketing Copy** are LLM-dri
 7. **Security baseline:** secrets only via environment variables; `.env` git-ignored; `.env.example` committed; CORS allow-list; Pydantic validation on every input.
 8. **Quality bar:** `ruff` + `mypy` clean; core modules (resilience, inventory, events, experiments) ≥ 80% unit coverage; integration tests use real containers (testcontainers).
 9. **Simulated things are labeled as simulated** (inventory, Thompson sampling results).
-10. Keep PRs small and phase-scoped. Don't refactor unrelated code. Don't push to a remote or open PRs unless the owner asks.
+10. Keep PRs small and phase-scoped. Don't refactor unrelated code. Don't open PRs unless the owner asks. Git writes are covered by rule 12.
 11. **Depth over breadth (ADR-0011).** Prefer taking a deep item further over adding a new feature. A phase cannot close until this **Definition of Done** (SPEC §1.6) holds for each of its deep items and requirement groups:
     1. Core paths are covered by automated tests, named with the requirement ID.
     2. A result report exists in `docs/results/` with method, numbers, **limitations**, and "what was tried and did not work".
     3. Related decisions are recorded as ADRs.
     4. One `make` command reproduces the result from a clean checkout.
     5. Requirement statuses in SPEC are updated (☐ / ◐ / ☑).
+12. **The owner commits; Claude never does.** Never run `git add`, `git commit` or `git push`, including amend, rebase, cherry-pick, merge or any history rewrite that creates commits. Leave every change in the working tree. Read-only git commands (`status`, `diff`, `log`, `show`) are fine. At the end of each task, hand over the commit plan described in §11.
 
 ## 8. Notes about the upstream repo (reference only)
 
@@ -85,10 +86,14 @@ No real payments/orders/accounts, no polished frontend and no dashboard app (Gra
 
 Layout: see SPEC §4.6 (`src/commerce_agent/...`, `tests/`, `bench/`, `deploy/`, `docs/`). Repo name `commerce-agent`, Python package `commerce_agent`, license MIT.
 
-Commands (created in P0; keep this list current): `make install`, `make up`, `make down`, `make test`, `make lint`, `make typecheck`, `make fmt`, `make audit`, `make data` (P1), `make eval-e1` … `make bench-e6` (later phases).
+Commands (created in P0; keep this list current): `make install`, `make up`, `make down`, `make test`, `make lint`, `make typecheck`, `make fmt`, `make audit`, `make test-integration`, `make migrate`, `make data`, `make data-reset`, `make profile-categories`, `make eval-e1` … `make bench-e6` (later phases).
 
 ## 11. Working agreement
 
 - Start each phase by turning that phase's requirements into a short checklist and showing it to the owner.
 - At the end of each phase: run the tests, check the exit criteria, update requirement statuses in SPEC, write/refresh ADRs and result reports, then summarize in a few sentences and name the next step.
 - When a decision needs the owner (e.g. dataset category in P1, LLM budget recalibration at the end of P2), ask once, clearly, with a recommendation.
+- **End of every task: commit plan for the owner** (rule 12; Claude never stages, commits or pushes). Print:
+  1. The output of `git status --short`.
+  2. A suggested grouping of the changed files into small, logical commits.
+  3. For each group, the exact `git add <paths>` command and a one-line English commit message in the imperative mood, with no attribution trailers (no `Co-Authored-By`, no `Claude-Session`).

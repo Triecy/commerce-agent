@@ -1,0 +1,80 @@
+{
+  "Industrial_and_Scientific": {
+    "five_core": {
+      "density": 0.000313,
+      "first_date": "2001-07-04",
+      "interactions": 412947,
+      "items": 25848,
+      "last_date": "2023-08-25",
+      "median_item_popularity": 9.0,
+      "median_user_history": 6.0,
+      "positive_share": 0.8604,
+      "top1pct_item_share": 0.1368,
+      "users": 50985
+    },
+    "inputs": {
+      "Industrial_and_Scientific.csv.gz": "37dc32e707c6a89d2f8c4cf259fdec4e0ac1e2c7bd99c5886ee2c74c0ca99060",
+      "meta_Industrial_and_Scientific.jsonl.gz": "0beb251cec166347a3ec3ef23e55ec89f7fb27a6e8e9a0737d6b34cdc184ebcb"
+    },
+    "text": {
+      "distinct_top2_categories": 54,
+      "has_description": 0.5749,
+      "has_features": 0.9222,
+      "has_price": 0.7469,
+      "items_matched": 25848,
+      "median_text_chars": 991.0
+    }
+  },
+  "Musical_Instruments": {
+    "five_core": {
+      "density": 0.000362,
+      "first_date": "2003-05-26",
+      "interactions": 511836,
+      "items": 24587,
+      "last_date": "2023-09-03",
+      "median_item_popularity": 10.0,
+      "median_user_history": 7.0,
+      "positive_share": 0.8547,
+      "top1pct_item_share": 0.1812,
+      "users": 57439
+    },
+    "inputs": {
+      "Musical_Instruments.csv.gz": "e1cabe91651102ada04aee6836e6a890cd557386389da6ee9c3c80e8aa507260",
+      "meta_Musical_Instruments.jsonl.gz": "26a08fb09c39f9afc0982e7c101967df23a08ccdb0832657a3fe1af89e67c29d"
+    },
+    "text": {
+      "distinct_top2_categories": 30,
+      "has_description": 0.7177,
+      "has_features": 0.946,
+      "has_price": 0.6704,
+      "items_matched": 24587,
+      "median_text_chars": 848.0
+    }
+  },
+  "Video_Games": {
+    "five_core": {
+      "density": 0.000336,
+      "first_date": "1999-10-22",
+      "interactions": 814586,
+      "items": 25612,
+      "last_date": "2023-09-02",
+      "median_item_popularity": 12.0,
+      "median_user_history": 6.0,
+      "positive_share": 0.8039,
+      "top1pct_item_share": 0.1859,
+      "users": 94762
+    },
+    "inputs": {
+      "Video_Games.csv.gz": "a2bde5f3b945960d161538c200dd87845e6ee471b46da96410dde61613c6901c",
+      "meta_Video_Games.jsonl.gz": "ced9696b0874121327a438bfe9d3d01aba45da158e58f94f4920352d75fc1fc9"
+    },
+    "text": {
+      "distinct_top2_categories": 46,
+      "has_description": 0.7339,
+      "has_features": 0.871,
+      "has_price": 0.669,
+      "items_matched": 25612,
+      "median_text_chars": 1138.0
+    }
+  }
+}

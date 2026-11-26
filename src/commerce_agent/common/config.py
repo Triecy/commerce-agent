@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Annotated, Literal
+from urllib.parse import quote
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -47,6 +48,11 @@ class Settings(BaseSettings):
     # Upper bound for each dependency probe in /readyz (enforced timeout, CLAUDE.md §7.3).
     readiness_timeout_s: float = Field(default=1.0, gt=0, le=10)
 
+    # Database timeouts (enforced by asyncpg). Bulk loads in `make data` use the longer one.
+    db_connect_timeout_s: float = Field(default=5.0, gt=0, le=60)
+    db_statement_timeout_s: float = Field(default=30.0, gt=0, le=600)
+    db_bulk_timeout_s: float = Field(default=600.0, gt=0, le=3600)
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _upper_log_level(cls, value: object) -> object:
@@ -62,11 +68,17 @@ class Settings(BaseSettings):
     @property
     def postgres_dsn(self) -> str:
         """SQLAlchemy-style async DSN. Contains the password: never log it."""
-        password = self.postgres_password.get_secret_value()
-        return (
-            f"postgresql+asyncpg://{self.postgres_user}:{password}"
-            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
-        )
+        return "postgresql+asyncpg://" + self._postgres_location()
+
+    @property
+    def postgres_dsn_asyncpg(self) -> str:
+        """Plain DSN for asyncpg.connect(). Contains the password: never log it."""
+        return "postgresql://" + self._postgres_location()
+
+    def _postgres_location(self) -> str:
+        password = quote(self.postgres_password.get_secret_value(), safe="")
+        user = quote(self.postgres_user, safe="")
+        return f"{user}:{password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
 
 @lru_cache(maxsize=1)
