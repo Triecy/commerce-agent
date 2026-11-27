@@ -4,7 +4,7 @@ Read this file at the start of every session. It summarizes the project context 
 
 ## 1. Source of truth
 
-- `SPEC.md` (repo root) is the single source of truth. Current version: v0.7.1 (baseline, approved by the owner; scope refocused on depth by ADR-0011; written in English).
+- `SPEC.md` (repo root) is the single source of truth. Current version: v0.7.5 (baseline, approved by the owner; scope refocused on depth by ADR-0011; written in English).
 - Work **strictly in the phase order of SPEC §11** (P0 → P9). Do not jump ahead. Each phase has exit criteria; a phase is done only when they are met.
 - Every requirement has an ID (`FR-*`, `NFR-*`). Reference IDs in commit messages, PR descriptions and test names (e.g. `test_FR_I2_no_oversell`). Update the status column (☐ / ◐ / ☑) in SPEC when you finish a requirement.
 - If the spec turns out to be wrong or infeasible: **stop, propose a spec change, and get the owner's approval.** Change `SPEC.md` in the same PR and add a row to its changelog (§15). Never silently deviate.
@@ -31,7 +31,7 @@ Commerce Agent is a portfolio-grade, **single-developer** e-commerce system buil
 | 0003 | Vector search with **pgvector** behind a `VectorIndex` interface. A Milvus comparison is deferred (ADR-0011). |
 | 0004 | Modular monolith first; split a service only if (a) it has independent scaling/availability/consistency needs and (b) the benefit can be measured. |
 | 0005 | **Apache Kafka (KRaft, single node)** with `aiokafka` (Redpanda is an acceptable swap). |
-| 0006 | LLM = **Claude via the native API behind an `LLMClient` abstraction** (FR-O7). Haiku 5.5 → Router, marketing copy, dev/debug; Sonnet 5.5 → RAG answer generation; Opus 5.5 → evaluation judge only (a different tier than the model under test). Local **Ollama** is allowed for early debugging only; **evaluation results count only if produced with Claude.** Initial total evaluation budget **$30 USD**, to be recalibrated at the end of P2. P0–P2 need no LLM. |
+| 0006 | LLM = **Claude via the native API behind an `LLMClient` abstraction** (FR-O7). Haiku 5.5 → Router, marketing copy, dev/debug; Sonnet 5.5 → RAG answer generation; Opus 5.5 → evaluation judge only (a different tier than the model under test). Local **Ollama** is allowed for early debugging only; **evaluation results count only if produced with Claude.** Total evaluation budget **$110 USD** (raised from $30 in the P2 budget review) with per-experiment caps: E4 $48, E5 pilot $50, FR-O6 $2, FR-M $2, development $8; next review at the end of P3. P0–P2 need no LLM. |
 | 0007 | Profile/recommendation are deterministic; **LLM is never on the Flow R critical path** (copy is cached; template fallback). |
 | 0008 | At-least-once delivery + idempotent consumers; read paths fail-open, inventory reservation fails closed. |
 | 0009 | Evaluation: full-ranking metrics (no sampled negatives), temporal split (leave-last-out), LLM response cache for reproducibility. |

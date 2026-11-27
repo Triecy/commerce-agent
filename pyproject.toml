@@ -9,7 +9,9 @@ dependencies = [
     "alembic>=1.20.1",
     "asyncpg>=0.32.0",
     "fastapi>=0.165.0",
+    "numpy>=2.5.5",
     "pydantic-settings>=2.16.3",
+    "scipy>=1.18.1",
     "sqlalchemy[asyncio]>=2.1.9",
     "uvicorn>=0.54.0",
 ]
@@ -20,6 +22,15 @@ build-backend = "uv_build"
 
 [tool.uv]
 python-preference = "managed"
+
+# torch on Linux comes from the CPU-only index (no CUDA wheels in CI or on servers).
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100
@@ -70,5 +81,10 @@ dev = [
     "mypy>=2.4.1",
     "pytest>=9.2.0",
     "ruff>=0.17.6",
+    "scipy-stubs>=1.18.1.1",
     "testcontainers>=4.15.0",
+]
+ml = [
+    "sentence-transformers>=6.3.0",
+    "torch>=2.11,<2.12",
 ]

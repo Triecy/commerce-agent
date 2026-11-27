@@ -2,8 +2,8 @@
 
 | Item | Value |
 |---|---|
-| Version | v0.7.2 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
-| Date | 2026-11-22 |
+| Version | v0.7.5 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
+| Date | 2026-11-25 |
 | Upstream | `bcefghj/multi-agent-ecommerce-system` @ main (2 commits; cloned, Python implementation reviewed) |
 | Project name | Commerce Agent (repository `commerce-agent`; Python package `commerce_agent`) |
 | License | MIT, copyright held by the owner |
@@ -185,7 +185,7 @@ V4  Hardened (Phases 7–8)
 | DB | PostgreSQL 16 + `pgvector` (ADR-0003); SQLAlchemy 2 (async) + Alembic | Single transactional store; vector search can be combined with SQL filters |
 | Cache / features | Redis 7 | ZSET sliding-window features, cache, idempotency keys |
 | Messaging | Apache Kafka (KRaft, single node) (ADR-0005); `aiokafka` | |
-| Embedding | Local `sentence-transformers` (default `BAAI/bge-small-en-v1.5`, to be verified at implementation time) | Zero API cost, reproducible |
+| Embedding | Local `sentence-transformers`: `BAAI/bge-small-en-v1.5` (verified in P2: MIT, 384 dims; pinned revision, CPU; optional `ml` dependency group; ADR-0012) | Zero API cost, reproducible |
 | LLM | A thin in-house abstraction `LLMClient` (FR-O7); default implementation is the native Claude API (`anthropic` SDK / `langchain-anthropic`); Ollama can be swapped in during development; an on-disk prompt→response cache is enabled for evaluation (ADR-0006) | Never commit any key |
 | Observability | OpenTelemetry (traces, incl. Kafka header propagation), Prometheus, Grafana, structured logs | |
 | Load testing | k6 (constant-arrival-rate) + a home-built stub LLM service | Isolates architecture effects from LLM-provider variance |
@@ -260,6 +260,8 @@ experiment_outcomes(request_id, event_type, value, ts)
 ### 5.4 Reproducibility requirements
 Download scripts carry versions and checksums; `make data` is idempotent; every random process has a fixed seed; `data-card.md` records source, license, filtering rules, statistics and known biases.
 
+**Review-text rule.** Public reports (`docs/results/`), the README and other published docs cite items by `item_id` only, with paraphrased summaries; they **never** contain verbatim review text. Evaluation sets, human-labeled files and any other file containing review text live in the git-ignored local directory `data/private/`; only aggregates, IDs and checksums are committed (data card §2, §14).
+
 ---
 
 ## 6. Functional Requirements
@@ -277,11 +279,11 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 ### 6.2 Recommendation (FR-R)
 | ID | Requirement | Acceptance | Status |
 |---|---|---|---|
-| FR-R1 | Recall: global popularity, item-item co-visitation, embedding similarity (content), hybrid (RRF / weighted) | Each route can be toggled independently; same input → same output (deterministic) | ☐ |
-| FR-R2 | Filters: already purchased / unavailable / category constraints | Covered by unit tests | ☐ |
-| FR-R3 | Ranking: feature-weighted scoring (explainable), diversity re-ranking | `reason_tags` are output with each ranking | ☐ |
+| FR-R1 | Recall: global popularity, item-item co-visitation, embedding similarity (content), hybrid (RRF / weighted) | Each route can be toggled independently; same input → same output (deterministic) | ☑ |
+| FR-R2 | Filters: already purchased / unavailable / category constraints | Covered by unit tests | ☑ |
+| FR-R3 | Ranking: feature-weighted scoring (explainable), diversity re-ranking | `reason_tags` are output with each ranking | ☑ |
 | FR-R4 | **Deferred.** LLM rerank (feature flag, off by default) | Not in plan (ADR-0011) | — |
-| FR-R5 | Offline evaluation framework: Recall@K, NDCG@K, HitRate@K, Coverage, diversity | Produces the E1 report with bootstrap 95% CIs | ☐ |
+| FR-R5 | Offline evaluation framework: Recall@K, NDCG@K, HitRate@K, Coverage, diversity | Produces the E1 report with bootstrap 95% CIs | ☑ |
 
 ### 6.3 RAG (FR-K)
 | ID | Requirement | Acceptance | Status |
@@ -371,7 +373,7 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 | NFR-1 | Reproducibility | Same commit + seed + data version gives identical evaluation results (LLM evaluations use the response cache) | ☐ |
 | NFR-2 | Performance targets (hypotheses, calibrated in P8) | Flow R p95 ≤ 300 ms / p99 ≤ 600 ms (stub LLM, specified machine); Flow Q p95 ≤ 8 s (real LLM) | ☐ |
 | NFR-3 | Correctness | 0 oversells; 0 lost events; 0 duplicate side effects on duplicate delivery | ☐ |
-| NFR-4 | Cost | Before each evaluation run, estimate LLM cost and compare it with the remaining budget, refusing to run if it would exceed it; initial total evaluation budget is USD 30, recalibrated by actual usage before the end of P2 (ADR-0006) | ☐ |
+| NFR-4 | Cost | Before each evaluation run, estimate LLM cost and compare it with the remaining budget, refusing to run if it would exceed it. Total evaluation budget USD 110 (P2 budget review, ADR-0006; was USD 30) with per-experiment caps: E4 48, E5 pilot 50, FR-O6 2, FR-M 2, development 8. Actual spend is metered per run and the budget is reviewed again at the end of P3 | ☐ |
 | NFR-5 | Security baseline | Secrets only via environment variables; CORS allow-list; Pydantic validation on inputs; dependency scanning | ☐ |
 | NFR-6 | Quality | Unit coverage ≥ 80% for core modules (resilience, inventory, events, experiments); `ruff` / `mypy` pass | ☐ |
 | NFR-7 | Documentation | README, `architecture.md`, `data-card.md`, `results/` reports, ≥ 6 ADRs | ☐ |
@@ -518,12 +520,13 @@ Already deferred (§3): P6 / V3, Retailrocket, E9, E2 / FR-R4, Dashboard, Milvus
 | 0003 | Vector search uses pgvector (isolated behind a `VectorIndex` interface); Milvus only as a deferred comparison (the upstream uses Milvus; pgvector removes one stateful component and can be combined with SQL filters) | Accepted |
 | 0004 | Modular monolith first; admission conditions for splitting are in §4.3 | Accepted |
 | 0005 | Apache Kafka KRaft single node + `aiokafka` (Redpanda is an acceptable swap) | Accepted |
-| 0006 | LLM: native Claude API behind the `LLMClient` abstraction. Division of labor: Haiku 5.5 → Router / marketing copy / dev debugging; Sonnet 5.5 → RAG answer generation; Opus 5.5 → evaluation judge only (a different tier than the model under test). P0–P2 need no LLM; local Ollama may be used for debugging, but **evaluation results count only if produced with Claude**. Initial total evaluation budget USD 30 | Accepted (model split and budget reviewed against actual usage at the end of P2; the owner must bring their own Console account and API key) |
+| 0006 | LLM: native Claude API behind the `LLMClient` abstraction. Division of labor: Haiku 5.5 → Router / marketing copy / dev debugging; Sonnet 5.5 → RAG answer generation; Opus 5.5 → evaluation judge only (a different tier than the model under test). P0–P2 need no LLM; local Ollama may be used for debugging, but **evaluation results count only if produced with Claude**. Total evaluation budget USD 110 with per-experiment caps (P2 budget review; initially USD 30) | Accepted (budget revised at the end of P2, next review at the end of P3; the owner must bring their own Console account and API key) |
 | 0007 | Recommendation / profile are deterministic first; the LLM is not on Flow R's critical path | Accepted |
 | 0008 | At-least-once delivery + consumer-side idempotency; the inventory reservation path fails closed | Accepted |
 | 0009 | Evaluation: full-ranking metrics, temporal split, LLM response cache | Accepted |
 | 0010 | New empty repository `commerce-agent`, **not a fork of the upstream**; borrow ideas only, credit it in `NOTICE`, copy none of its code or docs (the upstream has no LICENSE file, see §2.4). Re-evaluate if the upstream later adds a license | Accepted (confirmed by the owner) |
 | 0011 | Depth over breadth: five deep items (§1.6) carry the project, with a Definition of Done that gates every phase. Backend / distributed patterns are the flagship, and RAG is also deep (FR-K6–K8 added, cross-encoder FR-K3 restored as an E3 arm). Deferred: P6 / V3, Retailrocket, E2 / FR-R4, E9 / FR-X5, Dashboard FR-B4. Reduced: E5 to a pilot, E6 to V1 vs V2 | Accepted (owner confirmed) |
+| 0012 | Recommendation baselines and the E1 protocol: popularity / co-visitation / content embedding (title, features, description; never reviews) / weighted RRF; explainable feature-weighted ranker + MMR; embeddings in an on-disk cache (no new table in P2); `ml` dependency group; tune on a validation subsample, test once; availability filter off in evaluation | Accepted |
 
 ---
 
@@ -549,6 +552,8 @@ Already deferred (§3): P6 / V3, Retailrocket, E9, E2 / FR-R4, Dashboard, Milvus
 - "Across N failure-injection scenarios: 0 lost events, degradation rate …"
 - "Single-agent vs multi-agent comparison: constraint satisfaction … latency … cost … (including negative findings)"
 
+**Review text**: items are cited by `item_id` with a paraphrased summary only; verbatim review text never appears in reports, the README, slides or resume material (§5.4).
+
 **Must not be written**: any online CTR / CVR / GMV improvement; "production-grade"; a P99 not proven by E6; any number from the upstream README.
 
 ---
@@ -565,6 +570,9 @@ Already deferred (§3): P6 / V3, Retailrocket, E9, E2 / FR-R4, Dashboard, Milvus
 | 2026-11-23 | v0.7 | ADR-0011 (depth over breadth): added §1.6 deep items and Definition of Done; deferred P6 / V3, Retailrocket, E2 / FR-R4, E9 / FR-X5, FR-B4; reduced E5 (pilot) and E6 (V1 vs V2); added FR-K6–K8 and restored FR-K3 for RAG depth; re-estimated P3 / P4 / P8 / P9 (total ≈ 41 person-days) | — |
 | 2026-11-23 | v0.7.1 | Consistency fixes after ADR-0011, no requirement changes: §1.2 narrative no longer mentions an independent inventory service; §1.3 G6 drops the experiment simulator; §2.3 drops Thompson-in-simulator (`services/ab_test.py`) and optional LLM rerank (`agents/product_rec_agent.py`); §4.2 Inventory is a Postgres inventory store; §4.6 layout drops `rerank_llm.py` and `thompson_sim` | — |
 | 2026-11-23 | v0.7.2 | P1 decisions recorded (owner approved): category Video_Games (ADR-0002); §5.3 k = 5 using the official 5-core file as is, every review is a positive interaction; §8.1 E1 adds a rating ≥ 4 robustness variant; FR-D1–D4 ☑ | — |
+| 2026-11-25 | v0.7.3 | Review-text rule (owner request): public reports and the README cite items by ID with paraphrased summaries, never verbatim review text; files containing review text (evaluation sets, human labels) live in the git-ignored `data/private/` (§5.4, §14, data card §2) | — |
+| 2026-11-25 | v0.7.4 | P2 done: FR-R1–R3, FR-R5 ☑; E1 report in `docs/results/e1/`; ADR-0012 added (§12); §4.4 embedding model verified and pinned. No requirement changes | — |
+| 2026-11-25 | v0.7.5 | End-of-P2 LLM budget review (ADR-0006): spend to date USD 0; estimate for P3–P4 USD 81 (USD 106 with a 30% margin) at prices checked 2026-11-25; total budget raised from USD 30 to USD 110 with per-experiment caps; NFR-4 and the §12 ADR-0006 row updated | — |
 
 ---
 
