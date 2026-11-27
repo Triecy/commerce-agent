@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Version | v0.7.4 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
+| Version | v0.7.5 (Baseline, approved by the owner; scope refocused on depth, ADR-0011; all ADRs in §12 are Accepted) |
 | Date | 2026-11-25 |
 | Upstream | `bcefghj/multi-agent-ecommerce-system` @ main (2 commits; cloned, Python implementation reviewed) |
 | Project name | Commerce Agent (repository `commerce-agent`; Python package `commerce_agent`) |
@@ -373,7 +373,7 @@ Download scripts carry versions and checksums; `make data` is idempotent; every 
 | NFR-1 | Reproducibility | Same commit + seed + data version gives identical evaluation results (LLM evaluations use the response cache) | ☐ |
 | NFR-2 | Performance targets (hypotheses, calibrated in P8) | Flow R p95 ≤ 300 ms / p99 ≤ 600 ms (stub LLM, specified machine); Flow Q p95 ≤ 8 s (real LLM) | ☐ |
 | NFR-3 | Correctness | 0 oversells; 0 lost events; 0 duplicate side effects on duplicate delivery | ☐ |
-| NFR-4 | Cost | Before each evaluation run, estimate LLM cost and compare it with the remaining budget, refusing to run if it would exceed it; initial total evaluation budget is USD 30, recalibrated by actual usage before the end of P2 (ADR-0006) | ☐ |
+| NFR-4 | Cost | Before each evaluation run, estimate LLM cost and compare it with the remaining budget, refusing to run if it would exceed it. Total evaluation budget USD 110 (P2 budget review, ADR-0006; was USD 30) with per-experiment caps: E4 48, E5 pilot 50, FR-O6 2, FR-M 2, development 8. Actual spend is metered per run and the budget is reviewed again at the end of P3 | ☐ |
 | NFR-5 | Security baseline | Secrets only via environment variables; CORS allow-list; Pydantic validation on inputs; dependency scanning | ☐ |
 | NFR-6 | Quality | Unit coverage ≥ 80% for core modules (resilience, inventory, events, experiments); `ruff` / `mypy` pass | ☐ |
 | NFR-7 | Documentation | README, `architecture.md`, `data-card.md`, `results/` reports, ≥ 6 ADRs | ☐ |
@@ -520,7 +520,7 @@ Already deferred (§3): P6 / V3, Retailrocket, E9, E2 / FR-R4, Dashboard, Milvus
 | 0003 | Vector search uses pgvector (isolated behind a `VectorIndex` interface); Milvus only as a deferred comparison (the upstream uses Milvus; pgvector removes one stateful component and can be combined with SQL filters) | Accepted |
 | 0004 | Modular monolith first; admission conditions for splitting are in §4.3 | Accepted |
 | 0005 | Apache Kafka KRaft single node + `aiokafka` (Redpanda is an acceptable swap) | Accepted |
-| 0006 | LLM: native Claude API behind the `LLMClient` abstraction. Division of labor: Haiku 5.5 → Router / marketing copy / dev debugging; Sonnet 5.5 → RAG answer generation; Opus 5.5 → evaluation judge only (a different tier than the model under test). P0–P2 need no LLM; local Ollama may be used for debugging, but **evaluation results count only if produced with Claude**. Initial total evaluation budget USD 30 | Accepted (model split and budget reviewed against actual usage at the end of P2; the owner must bring their own Console account and API key) |
+| 0006 | LLM: native Claude API behind the `LLMClient` abstraction. Division of labor: Haiku 5.5 → Router / marketing copy / dev debugging; Sonnet 5.5 → RAG answer generation; Opus 5.5 → evaluation judge only (a different tier than the model under test). P0–P2 need no LLM; local Ollama may be used for debugging, but **evaluation results count only if produced with Claude**. Total evaluation budget USD 110 with per-experiment caps (P2 budget review; initially USD 30) | Accepted (budget revised at the end of P2, next review at the end of P3; the owner must bring their own Console account and API key) |
 | 0007 | Recommendation / profile are deterministic first; the LLM is not on Flow R's critical path | Accepted |
 | 0008 | At-least-once delivery + consumer-side idempotency; the inventory reservation path fails closed | Accepted |
 | 0009 | Evaluation: full-ranking metrics, temporal split, LLM response cache | Accepted |
@@ -572,6 +572,7 @@ Already deferred (§3): P6 / V3, Retailrocket, E9, E2 / FR-R4, Dashboard, Milvus
 | 2026-11-23 | v0.7.2 | P1 decisions recorded (owner approved): category Video_Games (ADR-0002); §5.3 k = 5 using the official 5-core file as is, every review is a positive interaction; §8.1 E1 adds a rating ≥ 4 robustness variant; FR-D1–D4 ☑ | — |
 | 2026-11-25 | v0.7.3 | Review-text rule (owner request): public reports and the README cite items by ID with paraphrased summaries, never verbatim review text; files containing review text (evaluation sets, human labels) live in the git-ignored `data/private/` (§5.4, §14, data card §2) | — |
 | 2026-11-25 | v0.7.4 | P2 done: FR-R1–R3, FR-R5 ☑; E1 report in `docs/results/e1/`; ADR-0012 added (§12); §4.4 embedding model verified and pinned. No requirement changes | — |
+| 2026-11-25 | v0.7.5 | End-of-P2 LLM budget review (ADR-0006): spend to date USD 0; estimate for P3–P4 USD 81 (USD 106 with a 30% margin) at prices checked 2026-11-25; total budget raised from USD 30 to USD 110 with per-experiment caps; NFR-4 and the §12 ADR-0006 row updated | — |
 
 ---
 
